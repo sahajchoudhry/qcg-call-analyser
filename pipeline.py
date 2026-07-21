@@ -63,25 +63,34 @@ def http_post(url, data, headers=None):
 EIGHT_BY_EIGHT_REGION = os.environ.get('EIGHT_BY_EIGHT_REGION', 'eu')
 
 def get_8x8_token():
-    """Get OAuth Bearer token for 8x8 Cloud Storage Service API."""
+    """Get OAuth Bearer token for 8x8 Cloud Storage Service API.
+    Uses Basic Auth with Base64-encoded key:secret in Authorization header.
+    """
     log("Authenticating with 8x8 Cloud Storage Service...")
-    url  = 'https://api.8x8.com/oauth/v2/token'
-    body = urllib.parse.urlencode({
-        'grant_type':    'client_credentials',
-        'client_id':     EIGHT_BY_EIGHT_KEY,
-        'client_secret': EIGHT_BY_EIGHT_SECRET,
-    }).encode('utf-8')
+    url = 'https://api.8x8.com/oauth/v2/token'
+
+    # Encode key:secret as Base64 for Basic Auth header
+    credentials = base64.b64encode(
+        f"{EIGHT_BY_EIGHT_KEY}:{EIGHT_BY_EIGHT_SECRET}".encode('utf-8')
+    ).decode('utf-8')
+
+    body = urllib.parse.urlencode({'grant_type': 'client_credentials'}).encode('utf-8')
+
     req = urllib.request.Request(
         url, data=body,
-        headers={'Content-Type': 'application/x-www-form-urlencoded'},
+        headers={
+            'Content-Type':  'application/x-www-form-urlencoded',
+            'Authorization': f'Basic {credentials}',
+        },
         method='POST'
     )
     with urllib.request.urlopen(req, timeout=30) as resp:
         data = json.loads(resp.read().decode('utf-8'))
+
     token = data.get('access_token')
     if not token:
         raise Exception('Failed to get 8x8 OAuth token: ' + str(data))
-    log("8x8 authentication successful")
+    log(f"8x8 authentication successful — products: {data.get('api_product_list', 'unknown')}")
     return token
 
 def get_8x8_auth_headers(token):
