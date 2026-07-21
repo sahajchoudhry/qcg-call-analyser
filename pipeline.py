@@ -105,8 +105,10 @@ def get_8x8_auth_headers(token):
 def fetch_call_records(token):
     """
     Fetch call recordings from 8x8 Cloud Storage Service.
-    Type is 'callrecording' for Work/PBX calls.
-    Object names follow pattern: ipbx:{tenant}:callrecording:users:{ext}:...mp3
+    Object names follow pattern:
+    ipbx_qualitycareinsura_callrecording_users_EXT_TIMESTAMP-CALLID-xEXTu1-_PROSPECT_E.mp3
+    or with colons:
+    ipbx:qualitycareinsura:callrecording:users:EXT:...mp3
     """
     now   = datetime.now(timezone.utc)
     start = now - timedelta(days=DAYS_BACK)
@@ -118,42 +120,56 @@ def fetch_call_records(token):
 
     headers = get_8x8_auth_headers(token)
 
-    # Correct type is 'callrecording' for 8x8 Work/PBX calls
-    # Also try without type filter as fallback
+    # Try multiple approaches to find the recordings
     attempts = [
-        (f"type==callrecording;createdTime=ge={start_ms};createdTime=le={end_ms}", "callrecording"),
-        (f"createdTime=ge={start_ms};createdTime=le={end_ms}", "no type filter"),
+        # By object name prefix — tenant specific
+        (f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
+         f"?filter={urllib.parse.quote('objectName=sw=ipbx_qualitycareinsura_callrecording')}"
+         f"&limit=100", "objectName prefix underscore"),
+
+        (f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
+         f"?filter={urllib.parse.quote('objectName=sw=ipbx:qualitycareinsura:callrecording')}"
+         f"&limit=100", "objectName prefix colon"),
+
+        # By date range with callrecording type
+        (f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
+         f"?filter={urllib.parse.quote(f'type==callrecording;createdTime=ge={start_ms};createdTime=le={end_ms}')}"
+         f"&limit=100", "type callrecording date range"),
+
+        # No filter — get everything and we'll filter client side
+        (f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
+         f"?limit=50"
+         f"&sortField=createdTime&sortDirection=DESC", "no filter latest 50"),
     ]
 
-    for filter_str, label in attempts:
-        url = (
-            f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
-            f"?filter={urllib.parse.quote(filter_str)}"
-            f"&limit=100"
-            f"&sortField=createdTime"
-            f"&sortDirection=DESC"
-        )
+    for url, label in attempts:
         try:
             data    = http_get(url, headers)
             records = data.get('data', data if isinstance(data, list) else [])
-            log(f"Filter '{label}': found {len(records)} objects")
+            log(f"Attempt '{label}': found {len(records)} objects")
             if records:
-                # Log sample to confirm correct type
-                types = list(set(r.get('type','?') for r in records[:10]))
-                log(f"Object types found: {types}")
+                # Log sample
                 sample = records[0]
-                log(f"Sample objectName: {sample.get('objectName','?')[:80]}")
-                # Filter to audio only
-                audio = [r for r in records if 'audio' in r.get('mimeType','').lower() or r.get('type') == 'callrecording']
-                log(f"Audio/callrecording objects: {len(audio)}")
-                return audio if audio else records
+                log(f"Sample objectName: {sample.get('objectName','?')[:100]}")
+                log(f"Sample type: {sample.get('type','?')}")
+                log(f"Sample keys: {list(sample.keys())}")
+                # Filter to call recordings by date
+                filtered = [
+                    r for r in records
+                    if ('callrecording' in r.get('objectName','').lower() or
+                        r.get('type') == 'callrecording')
+                    and int(r.get('createdTime', 0)) >= start_ms
+                ]
+                log(f"After date+type filter: {len(filtered)} recordings")
+                if filtered:
+                    return filtered
         except urllib.error.HTTPError as e:
             body = e.read().decode('utf-8')
-            log(f"Filter '{label}' error {e.code}: {body[:200]}")
+            log(f"Attempt '{label}' error {e.code}: {body[:200]}")
         except Exception as e:
-            log(f"Filter '{label}' exception: {e}")
+            log(f"Attempt '{label}' exception: {str(e)[:100]}")
 
-    log("No recordings found — check region and date range")
+    log("No recordings found in Cloud Storage")
     return []
 
 
