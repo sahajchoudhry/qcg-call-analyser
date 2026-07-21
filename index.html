@@ -637,21 +637,19 @@ async function writeToSheets(c) {
     rep_behaviours:        c.result?.rep_behaviours || {},
   };
   try {
-    const res = await fetch(url, {
+    // Google Apps Script requires no-cors mode from external origins
+    // We can't read the response but the data still arrives
+    await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      mode: 'no-cors',
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!data.ok) console.warn('Sheets write failed:', data.error);
-    else {
-      // Show brief saved indicator on the card
-      const repEl = document.querySelector(`#card-${c.id} .call-rep`);
-      if (repEl) {
-        const orig = repEl.textContent;
-        repEl.textContent = orig + '  ✓ Saved to Sheet';
-        setTimeout(() => { repEl.textContent = orig; }, 3000);
-      }
+    // Show saved indicator
+    const repEl = document.querySelector('#card-'+c.id+' .call-rep');
+    if (repEl) {
+      const orig = repEl.textContent;
+      repEl.textContent = orig + '  ✓ Saved to Sheet';
+      setTimeout(function() { repEl.textContent = orig; }, 3000);
     }
   } catch(e) {
     console.warn('Sheets write error:', e);
