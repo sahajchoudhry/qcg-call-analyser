@@ -103,77 +103,69 @@ def get_8x8_auth_headers(token):
 # ── FETCH CALL RECORDS ────────────────────────────────────────────────────
 
 def fetch_call_records(token):
-    """Fetch call recordings from 8x8 Cloud Storage Service API."""
+    """
+    Fetch call recordings from 8x8 Contact Centre recordings API.
+    The admin console shows recordings at admin.8x8.com/recordings
+    which uses the Contact Centre recordings system.
+    """
     now   = datetime.now(timezone.utc)
     start = now - timedelta(days=DAYS_BACK)
-
-    start_ms = int(start.timestamp() * 1000)
-    end_ms   = int(now.timestamp() * 1000)
 
     log(f"Fetching recordings from {start.strftime('%Y-%m-%d')} to {now.strftime('%Y-%m-%d')}...")
 
     headers = get_8x8_auth_headers(token)
 
-    # First: discover region
-    try:
-        regions_data = http_get(
-            f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/regions",
-            headers
-        )
-        log(f"Region discovery: {json.dumps(regions_data)[:200]}")
-    except Exception as e:
-        log(f"Region discovery warning: {e}")
+    # Format dates for CC recordings API
+    start_str = start.strftime('%Y-%m-%dT%H:%M:%SZ')
+    end_str   = now.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    # Try multiple recording type filters — 8x8 Work uses different type names
-    recording_types = ['pbxrecording', 'workrecording', 'callrecording', 'recording']
-    all_records = []
+    # Try Contact Centre Recordings API endpoints
+    endpoints = [
+        # CC Recordings API v1
+        (f"https://api.8x8.com/recording/v1/recordings"
+         f"?startDate={urllib.parse.quote(start_str)}"
+         f"&endDate={urllib.parse.quote(end_str)}"
+         f"&limit=100", "CC Recordings v1"),
+        # CC Recordings API with tenant
+        (f"https://api.8x8.com/{EIGHT_BY_EIGHT_REGION}/recording/v1/recordings"
+         f"?startDate={urllib.parse.quote(start_str)}"
+         f"&endDate={urllib.parse.quote(end_str)}"
+         f"&limit=100", "CC Recordings v1 regional"),
+        # Cloud Storage with callcenterrecording type
+        (f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
+         f"?filter={urllib.parse.quote(f'type==callcenterrecording;createdTime=ge={int(start.timestamp()*1000)};createdTime=le={int(now.timestamp()*1000)}')}"
+         f"&limit=100", "Cloud Storage callcenterrecording"),
+        # Cloud Storage with all types — discover what's there
+        (f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
+         f"?filter={urllib.parse.quote(f'createdTime=ge={int(start.timestamp()*1000)};createdTime=le={int(now.timestamp()*1000)}')}"
+         f"&limit=20", "Cloud Storage all types"),
+    ]
 
-    for rec_type in recording_types:
-        filter_str = f"type=={rec_type};createdTime=ge={start_ms};createdTime=le={end_ms}"
-        url = (
-            f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
-            f"?filter={urllib.parse.quote(filter_str)}"
-            f"&limit=100"
-            f"&sortField=createdTime"
-            f"&sortDirection=DESC"
-        )
+    for url, label in endpoints:
         try:
             data    = http_get(url, headers)
-            records = data.get('data', data if isinstance(data, list) else [])
-            log(f"Type '{rec_type}': found {len(records)} recordings")
+            # Handle different response shapes
+            if isinstance(data, list):
+                records = data
+            else:
+                records = (data.get('recordings') or data.get('data') or
+                          data.get('items') or data.get('content') or [])
+            log(f"{label}: found {len(records)} recordings")
             if records:
-                all_records.extend(records)
-                break  # found recordings with this type, use it
+                # Log a sample to understand the structure
+                if records:
+                    sample = records[0]
+                    log(f"Sample record keys: {list(sample.keys())[:10]}")
+                    log(f"Sample record: {json.dumps(sample)[:300]}")
+                return records
         except urllib.error.HTTPError as e:
             body = e.read().decode('utf-8')
-            log(f"Type '{rec_type}' error {e.code}: {body[:100]}")
-            continue
+            log(f"{label} error {e.code}: {body[:150]}")
+        except Exception as e:
+            log(f"{label} exception: {str(e)[:100]}")
 
-    # If still nothing, try without type filter to see what's there
-    if not all_records:
-        log("Trying without type filter to discover available object types...")
-        url = (
-            f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
-            f"?filter={urllib.parse.quote(f'createdTime=ge={start_ms};createdTime=le={end_ms}')}"
-            f"&limit=10"
-        )
-        try:
-            data    = http_get(url, headers)
-            records = data.get('data', data if isinstance(data, list) else [])
-            log(f"Without type filter: found {len(records)} objects")
-            if records:
-                types_found = list(set(r.get('type','unknown') for r in records))
-                log(f"Object types found: {types_found}")
-                # Use all objects that have audio mime types
-                audio_records = [r for r in records if 'audio' in r.get('mimeType','') or 'mpeg' in r.get('mimeType','') or 'wav' in r.get('mimeType','')]
-                log(f"Audio objects: {len(audio_records)}")
-                all_records = audio_records if audio_records else records
-        except urllib.error.HTTPError as e:
-            body = e.read().decode('utf-8')
-            log(f"Unfiltered query error {e.code}: {body[:200]}")
-
-    log(f"Total recordings to process: {len(all_records)}")
-    return all_records
+    log("All endpoints returned 0 recordings")
+    return []
 
 
 # ── FETCH RECORDING FILE ──────────────────────────────────────────────────
