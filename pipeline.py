@@ -59,73 +59,78 @@ def http_post(url, data, headers=None):
 
 # ── 8x8 AUTHENTICATION ────────────────────────────────────────────────────
 
+# 8x8 Cloud Storage Service region — eu for UK accounts
+EIGHT_BY_EIGHT_REGION = os.environ.get('EIGHT_BY_EIGHT_REGION', 'eu')
+
 def get_8x8_token():
-    """
-    Build auth token for 8x8 Call Recordings and Storage API.
-    This API uses Base64-encoded key:secret as a Bearer token.
-    """
-    log("Building 8x8 auth token...")
-    combined = f"{EIGHT_BY_EIGHT_KEY}:{EIGHT_BY_EIGHT_SECRET}"
-    token    = base64.b64encode(combined.encode('utf-8')).decode('utf-8')
-    log("8x8 auth token built")
+    """Get OAuth Bearer token for 8x8 Cloud Storage Service API."""
+    log("Authenticating with 8x8 Cloud Storage Service...")
+    url  = 'https://api.8x8.com/oauth/v2/token'
+    body = urllib.parse.urlencode({
+        'grant_type':    'client_credentials',
+        'client_id':     EIGHT_BY_EIGHT_KEY,
+        'client_secret': EIGHT_BY_EIGHT_SECRET,
+    }).encode('utf-8')
+    req = urllib.request.Request(
+        url, data=body,
+        headers={'Content-Type': 'application/x-www-form-urlencoded'},
+        method='POST'
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data = json.loads(resp.read().decode('utf-8'))
+    token = data.get('access_token')
+    if not token:
+        raise Exception('Failed to get 8x8 OAuth token: ' + str(data))
+    log("8x8 authentication successful")
     return token
 
 def get_8x8_auth_headers(token):
-    """Return headers for 8x8 Call Recordings API requests."""
+    """Return headers for 8x8 Cloud Storage Service requests."""
     return {
-        'Authorization': f'Basic {token}',
+        'Authorization': f'Bearer {token}',
         'Accept':        'application/json',
     }
 
 # ── FETCH CALL RECORDS ────────────────────────────────────────────────────
 
 def fetch_call_records(token):
-    """Fetch call recording files from 8x8 Call Recordings API."""
+    """Fetch call recordings from 8x8 Cloud Storage Service API."""
     now   = datetime.now(timezone.utc)
     start = now - timedelta(days=DAYS_BACK)
 
-    # Format dates for the recordings API
-    start_str = start.strftime('%Y-%m-%dT%H:%M:%SZ')
-    end_str   = now.strftime('%Y-%m-%dT%H:%M:%SZ')
+    # Unix timestamps in milliseconds for the filter
+    start_ms = int(start.timestamp() * 1000)
+    end_ms   = int(now.timestamp() * 1000)
 
-    log(f"Fetching recordings from {start_str} to {end_str}...")
+    log(f"Fetching recordings from {start.strftime('%Y-%m-%d')} to {now.strftime('%Y-%m-%d')}...")
 
-    # 8x8 Call Recordings and Storage API endpoint
+    # Cloud Storage Service API — filter for Work PBX recordings in date range
+    # type==pbxrecording for 8x8 Work calls
+    filter_str = f"type==pbxrecording;createdTime=ge={start_ms};createdTime=le={end_ms}"
     url = (
-        f"https://storage.8x8.com/api/call-recordings"
-        f"?startDate={urllib.parse.quote(start_str)}"
-        f"&endDate={urllib.parse.quote(end_str)}"
+        f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
+        f"?filter={urllib.parse.quote(filter_str)}"
+        f"&limit=100"
+        f"&sortField=createdTime"
+        f"&sortDirection=DESC"
     )
-    if EIGHT_BY_EIGHT_PBX_ID:
-        url += f"&pbxId={EIGHT_BY_EIGHT_PBX_ID}"
-
     headers = get_8x8_auth_headers(token)
     try:
         data    = http_get(url, headers)
-        records = data if isinstance(data, list) else data.get('recordings', data.get('data', []))
+        records = data.get('data', data if isinstance(data, list) else [])
         log(f"Found {len(records)} recordings")
         return records
     except urllib.error.HTTPError as e:
         body = e.read().decode('utf-8')
-        log(f"Recordings API error {e.code}: {body}")
-        # Try alternate endpoint format
-        url2 = f"https://api.8x8.com/storage/v1/call-recordings?startDate={urllib.parse.quote(start_str)}&endDate={urllib.parse.quote(end_str)}"
-        try:
-            data    = http_get(url2, headers)
-            records = data if isinstance(data, list) else data.get('recordings', data.get('data', []))
-            log(f"Found {len(records)} recordings (alternate endpoint)")
-            return records
-        except Exception as e2:
-            log(f"Both endpoints failed: {e2}")
-            return []
+        log(f"Cloud Storage API error {e.code}: {body[:200]}")
+        return []
+
 
 # ── FETCH RECORDING FILE ──────────────────────────────────────────────────
 
 def fetch_recording(token, call_id):
-    """Download recording audio for a specific call."""
-    url = (
-        f"https://storage.8x8.com/api/call-recordings/{call_id}/download"
-    )
+    """Download recording audio from 8x8 Cloud Storage Service."""
+    url     = f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects/{call_id}/download"
     headers = get_8x8_auth_headers(token)
     req = urllib.request.Request(url, headers=headers, method='GET')
     try:
@@ -321,13 +326,20 @@ def main():
     errors    = 0
 
     for record in records:
-        call_id   = record.get('callId') or record.get('id', '')
+        # Cloud Storage Service object fields
+        call_id   = record.get('id', '')
         duration  = record.get('duration', 0)
-        user_email= record.get('userId') or record.get('agentEmail', '')
-        filename  = record.get('recordingFileName', f'{call_id}.mp3')
-        date_str  = record.get('startTime', '')[:10] or datetime.now().strftime('%Y-%m-%d')
-        time_str  = record.get('startTime', '')[11:16] or ''
-        prospect  = record.get('remoteNumber') or record.get('calledNumber', '')
+        user_email= record.get('userId', '')
+        filename  = record.get('objectName', f'{call_id}.mp3')
+        created   = record.get('createdTime', '')
+        date_str  = created[:10] if created else datetime.now().strftime('%Y-%m-%d')
+        time_str  = created[11:16] if len(created) > 15 else ''
+        # Extract prospect number from tags
+        tags      = {t.get('key'):t.get('value') for t in record.get('tags', [])}
+        prospect  = tags.get('remotePartyNumber') or tags.get('calledNumber', '')
+        # Also try to get user email from tags
+        if not user_email:
+            user_email = tags.get('userId', '')
 
         log(f"Processing call {call_id} ({duration}s) from {user_email}")
 
