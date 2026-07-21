@@ -60,66 +60,73 @@ def http_post(url, data, headers=None):
 # ── 8x8 AUTHENTICATION ────────────────────────────────────────────────────
 
 def get_8x8_token():
-    """Get OAuth token from 8x8 Work API."""
-    log("Authenticating with 8x8...")
-    url  = 'https://api.8x8.com/analytics/work/v1/oauth/token'
-    body = urllib.parse.urlencode({
-        'username': EIGHT_BY_EIGHT_KEY,
-        'password': EIGHT_BY_EIGHT_SECRET,
-    }).encode('utf-8')
-    headers = {
-        '8x8-apikey':    EIGHT_BY_EIGHT_KEY,
-        'Content-Type':  'application/x-www-form-urlencoded',
-    }
-    req = urllib.request.Request(url, data=body, headers=headers, method='POST')
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = json.loads(resp.read().decode('utf-8'))
-    token = data.get('access_token')
-    if not token:
-        raise Exception('Failed to get 8x8 token: ' + str(data))
-    log("8x8 authentication successful")
+    """
+    Build auth token for 8x8 Call Recordings and Storage API.
+    This API uses Base64-encoded key:secret as a Bearer token.
+    """
+    log("Building 8x8 auth token...")
+    combined = f"{EIGHT_BY_EIGHT_KEY}:{EIGHT_BY_EIGHT_SECRET}"
+    token    = base64.b64encode(combined.encode('utf-8')).decode('utf-8')
+    log("8x8 auth token built")
     return token
+
+def get_8x8_auth_headers(token):
+    """Return headers for 8x8 Call Recordings API requests."""
+    return {
+        'Authorization': f'Basic {token}',
+        'Accept':        'application/json',
+    }
 
 # ── FETCH CALL RECORDS ────────────────────────────────────────────────────
 
 def fetch_call_records(token):
-    """Fetch call detail records for the past DAYS_BACK days."""
+    """Fetch call recording files from 8x8 Call Recordings API."""
     now   = datetime.now(timezone.utc)
     start = now - timedelta(days=DAYS_BACK)
 
-    start_str = start.strftime('%Y-%m-%d 00:00:00')
-    end_str   = now.strftime('%Y-%m-%d 23:59:59')
+    # Format dates for the recordings API
+    start_str = start.strftime('%Y-%m-%dT%H:%M:%SZ')
+    end_str   = now.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    log(f"Fetching call records from {start_str} to {end_str}...")
+    log(f"Fetching recordings from {start_str} to {end_str}...")
 
+    # 8x8 Call Recordings and Storage API endpoint
     url = (
-        f"https://api.8x8.com/analytics/work/v1/call-records"
-        f"?pbxId={EIGHT_BY_EIGHT_PBX_ID}"
-        f"&startTime={urllib.parse.quote(start_str)}"
-        f"&endTime={urllib.parse.quote(end_str)}"
-        f"&timeZone=Europe/London"
-        f"&pageSize=100"
+        f"https://storage.8x8.com/api/call-recordings"
+        f"?startDate={urllib.parse.quote(start_str)}"
+        f"&endDate={urllib.parse.quote(end_str)}"
     )
-    headers = {
-        'Authorization': f'Bearer {token}',
-        '8x8-apikey':   EIGHT_BY_EIGHT_KEY,
-    }
-    data = http_get(url, headers)
-    records = data.get('data', [])
-    log(f"Found {len(records)} call records")
-    return records
+    if EIGHT_BY_EIGHT_PBX_ID:
+        url += f"&pbxId={EIGHT_BY_EIGHT_PBX_ID}"
+
+    headers = get_8x8_auth_headers(token)
+    try:
+        data    = http_get(url, headers)
+        records = data if isinstance(data, list) else data.get('recordings', data.get('data', []))
+        log(f"Found {len(records)} recordings")
+        return records
+    except urllib.error.HTTPError as e:
+        body = e.read().decode('utf-8')
+        log(f"Recordings API error {e.code}: {body}")
+        # Try alternate endpoint format
+        url2 = f"https://api.8x8.com/storage/v1/call-recordings?startDate={urllib.parse.quote(start_str)}&endDate={urllib.parse.quote(end_str)}"
+        try:
+            data    = http_get(url2, headers)
+            records = data if isinstance(data, list) else data.get('recordings', data.get('data', []))
+            log(f"Found {len(records)} recordings (alternate endpoint)")
+            return records
+        except Exception as e2:
+            log(f"Both endpoints failed: {e2}")
+            return []
 
 # ── FETCH RECORDING FILE ──────────────────────────────────────────────────
 
 def fetch_recording(token, call_id):
     """Download recording audio for a specific call."""
     url = (
-        f"https://api.8x8.com/analytics/work/v1/call-records/{call_id}/recording"
+        f"https://storage.8x8.com/api/call-recordings/{call_id}/download"
     )
-    headers = {
-        'Authorization': f'Bearer {token}',
-        '8x8-apikey':   EIGHT_BY_EIGHT_KEY,
-    }
+    headers = get_8x8_auth_headers(token)
     req = urllib.request.Request(url, headers=headers, method='GET')
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
