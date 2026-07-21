@@ -104,75 +104,63 @@ def get_8x8_auth_headers(token):
 
 def fetch_call_records(token):
     """
-    Fetch call recordings from 8x8 Contact Centre recordings API.
-    The admin console shows recordings at admin.8x8.com/recordings
-    which uses the Contact Centre recordings system.
+    Fetch call recordings from 8x8 Cloud Storage Service.
+    Type is 'callrecording' for Work/PBX calls.
+    Object names follow pattern: ipbx:{tenant}:callrecording:users:{ext}:...mp3
     """
     now   = datetime.now(timezone.utc)
     start = now - timedelta(days=DAYS_BACK)
+
+    start_ms = int(start.timestamp() * 1000)
+    end_ms   = int(now.timestamp() * 1000)
 
     log(f"Fetching recordings from {start.strftime('%Y-%m-%d')} to {now.strftime('%Y-%m-%d')}...")
 
     headers = get_8x8_auth_headers(token)
 
-    # Format dates for CC recordings API
-    start_str = start.strftime('%Y-%m-%dT%H:%M:%SZ')
-    end_str   = now.strftime('%Y-%m-%dT%H:%M:%SZ')
-
-    # Try Contact Centre Recordings API endpoints
-    endpoints = [
-        # CC Recordings API v1
-        (f"https://api.8x8.com/recording/v1/recordings"
-         f"?startDate={urllib.parse.quote(start_str)}"
-         f"&endDate={urllib.parse.quote(end_str)}"
-         f"&limit=100", "CC Recordings v1"),
-        # CC Recordings API with tenant
-        (f"https://api.8x8.com/{EIGHT_BY_EIGHT_REGION}/recording/v1/recordings"
-         f"?startDate={urllib.parse.quote(start_str)}"
-         f"&endDate={urllib.parse.quote(end_str)}"
-         f"&limit=100", "CC Recordings v1 regional"),
-        # Cloud Storage with callcenterrecording type
-        (f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
-         f"?filter={urllib.parse.quote(f'type==callcenterrecording;createdTime=ge={int(start.timestamp()*1000)};createdTime=le={int(now.timestamp()*1000)}')}"
-         f"&limit=100", "Cloud Storage callcenterrecording"),
-        # Cloud Storage with all types — discover what's there
-        (f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
-         f"?filter={urllib.parse.quote(f'createdTime=ge={int(start.timestamp()*1000)};createdTime=le={int(now.timestamp()*1000)}')}"
-         f"&limit=20", "Cloud Storage all types"),
+    # Correct type is 'callrecording' for 8x8 Work/PBX calls
+    # Also try without type filter as fallback
+    attempts = [
+        (f"type==callrecording;createdTime=ge={start_ms};createdTime=le={end_ms}", "callrecording"),
+        (f"createdTime=ge={start_ms};createdTime=le={end_ms}", "no type filter"),
     ]
 
-    for url, label in endpoints:
+    for filter_str, label in attempts:
+        url = (
+            f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
+            f"?filter={urllib.parse.quote(filter_str)}"
+            f"&limit=100"
+            f"&sortField=createdTime"
+            f"&sortDirection=DESC"
+        )
         try:
             data    = http_get(url, headers)
-            # Handle different response shapes
-            if isinstance(data, list):
-                records = data
-            else:
-                records = (data.get('recordings') or data.get('data') or
-                          data.get('items') or data.get('content') or [])
-            log(f"{label}: found {len(records)} recordings")
+            records = data.get('data', data if isinstance(data, list) else [])
+            log(f"Filter '{label}': found {len(records)} objects")
             if records:
-                # Log a sample to understand the structure
-                if records:
-                    sample = records[0]
-                    log(f"Sample record keys: {list(sample.keys())[:10]}")
-                    log(f"Sample record: {json.dumps(sample)[:300]}")
-                return records
+                # Log sample to confirm correct type
+                types = list(set(r.get('type','?') for r in records[:10]))
+                log(f"Object types found: {types}")
+                sample = records[0]
+                log(f"Sample objectName: {sample.get('objectName','?')[:80]}")
+                # Filter to audio only
+                audio = [r for r in records if 'audio' in r.get('mimeType','').lower() or r.get('type') == 'callrecording']
+                log(f"Audio/callrecording objects: {len(audio)}")
+                return audio if audio else records
         except urllib.error.HTTPError as e:
             body = e.read().decode('utf-8')
-            log(f"{label} error {e.code}: {body[:150]}")
+            log(f"Filter '{label}' error {e.code}: {body[:200]}")
         except Exception as e:
-            log(f"{label} exception: {str(e)[:100]}")
+            log(f"Filter '{label}' exception: {e}")
 
-    log("All endpoints returned 0 recordings")
+    log("No recordings found — check region and date range")
     return []
 
 
-# ── FETCH RECORDING FILE ──────────────────────────────────────────────────
-
 def fetch_recording(token, call_id):
     """Download recording audio from 8x8 Cloud Storage Service."""
-    url     = f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects/{call_id}/download"
+    # Cloud Storage download endpoint per developer.8x8.com docs
+    url     = f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects/{call_id}/content"
     headers = get_8x8_auth_headers(token)
     req = urllib.request.Request(url, headers=headers, method='GET')
     try:
@@ -369,19 +357,30 @@ def main():
 
     for record in records:
         # Cloud Storage Service object fields
+        # objectName format: ipbx:qualitycareinsura:callrecording:users:EXT:TIMESTAMP-CALLID-EXT-NUMBER_E.mp3
         call_id   = record.get('id', '')
-        duration  = record.get('duration', 0)
-        user_email= record.get('userId', '')
         filename  = record.get('objectName', f'{call_id}.mp3')
         created   = record.get('createdTime', '')
         date_str  = created[:10] if created else datetime.now().strftime('%Y-%m-%d')
         time_str  = created[11:16] if len(created) > 15 else ''
-        # Extract prospect number from tags
+
+        # Extract metadata from tags
         tags      = {t.get('key'):t.get('value') for t in record.get('tags', [])}
-        prospect  = tags.get('remotePartyNumber') or tags.get('calledNumber', '')
-        # Also try to get user email from tags
-        if not user_email:
-            user_email = tags.get('userId', '')
+        prospect  = tags.get('address') or tags.get('remotePartyNumber', '')
+        user_email= record.get('userId', '') or tags.get('userId', '')
+
+        # Parse extension and prospect from objectName if tags incomplete
+        # Format: ipbx:tenant:callrecording:users:EXT:TIMESTAMP-CALLID-EXT-PROSPECT_E.mp3
+        obj_name  = filename.replace('ipbx.', 'ipbx:').replace('.callrecording.', ':callrecording:')
+        parts     = obj_name.split(':')
+        if not prospect and len(parts) >= 6:
+            # Last part contains prospect number
+            last = parts[-1].replace('_E.mp3','').replace('.mp3','')
+            sub  = last.split('-')
+            if sub: prospect = sub[-1]
+
+        # Duration from storedBytes estimate or tags
+        duration  = int(tags.get('duration', 0)) if tags.get('duration') else 0
 
         log(f"Processing call {call_id} ({duration}s) from {user_email}")
 
