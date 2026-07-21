@@ -107,32 +107,73 @@ def fetch_call_records(token):
     now   = datetime.now(timezone.utc)
     start = now - timedelta(days=DAYS_BACK)
 
-    # Unix timestamps in milliseconds for the filter
     start_ms = int(start.timestamp() * 1000)
     end_ms   = int(now.timestamp() * 1000)
 
     log(f"Fetching recordings from {start.strftime('%Y-%m-%d')} to {now.strftime('%Y-%m-%d')}...")
 
-    # Cloud Storage Service API — filter for Work PBX recordings in date range
-    # type==pbxrecording for 8x8 Work calls
-    filter_str = f"type==pbxrecording;createdTime=ge={start_ms};createdTime=le={end_ms}"
-    url = (
-        f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
-        f"?filter={urllib.parse.quote(filter_str)}"
-        f"&limit=100"
-        f"&sortField=createdTime"
-        f"&sortDirection=DESC"
-    )
     headers = get_8x8_auth_headers(token)
+
+    # First: discover region
     try:
-        data    = http_get(url, headers)
-        records = data.get('data', data if isinstance(data, list) else [])
-        log(f"Found {len(records)} recordings")
-        return records
-    except urllib.error.HTTPError as e:
-        body = e.read().decode('utf-8')
-        log(f"Cloud Storage API error {e.code}: {body[:200]}")
-        return []
+        regions_data = http_get(
+            f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/regions",
+            headers
+        )
+        log(f"Region discovery: {json.dumps(regions_data)[:200]}")
+    except Exception as e:
+        log(f"Region discovery warning: {e}")
+
+    # Try multiple recording type filters — 8x8 Work uses different type names
+    recording_types = ['pbxrecording', 'workrecording', 'callrecording', 'recording']
+    all_records = []
+
+    for rec_type in recording_types:
+        filter_str = f"type=={rec_type};createdTime=ge={start_ms};createdTime=le={end_ms}"
+        url = (
+            f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
+            f"?filter={urllib.parse.quote(filter_str)}"
+            f"&limit=100"
+            f"&sortField=createdTime"
+            f"&sortDirection=DESC"
+        )
+        try:
+            data    = http_get(url, headers)
+            records = data.get('data', data if isinstance(data, list) else [])
+            log(f"Type '{rec_type}': found {len(records)} recordings")
+            if records:
+                all_records.extend(records)
+                break  # found recordings with this type, use it
+        except urllib.error.HTTPError as e:
+            body = e.read().decode('utf-8')
+            log(f"Type '{rec_type}' error {e.code}: {body[:100]}")
+            continue
+
+    # If still nothing, try without type filter to see what's there
+    if not all_records:
+        log("Trying without type filter to discover available object types...")
+        url = (
+            f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
+            f"?filter={urllib.parse.quote(f'createdTime=ge={start_ms};createdTime=le={end_ms}')}"
+            f"&limit=10"
+        )
+        try:
+            data    = http_get(url, headers)
+            records = data.get('data', data if isinstance(data, list) else [])
+            log(f"Without type filter: found {len(records)} objects")
+            if records:
+                types_found = list(set(r.get('type','unknown') for r in records))
+                log(f"Object types found: {types_found}")
+                # Use all objects that have audio mime types
+                audio_records = [r for r in records if 'audio' in r.get('mimeType','') or 'mpeg' in r.get('mimeType','') or 'wav' in r.get('mimeType','')]
+                log(f"Audio objects: {len(audio_records)}")
+                all_records = audio_records if audio_records else records
+        except urllib.error.HTTPError as e:
+            body = e.read().decode('utf-8')
+            log(f"Unfiltered query error {e.code}: {body[:200]}")
+
+    log(f"Total recordings to process: {len(all_records)}")
+    return all_records
 
 
 # ── FETCH RECORDING FILE ──────────────────────────────────────────────────
