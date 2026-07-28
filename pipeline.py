@@ -190,18 +190,36 @@ def fetch_call_records(token):
 
 
 def fetch_recording(token, call_id):
-    """Download recording audio from 8x8 Cloud Storage Service."""
-    # Cloud Storage download endpoint per developer.8x8.com docs
-    url     = f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects/{call_id}/content"
+    """
+    Download recording audio from 8x8 Cloud Storage Service.
+    Uses the single object content endpoint.
+    """
+    region  = EIGHT_BY_EIGHT_REGION
     headers = get_8x8_auth_headers(token)
-    req = urllib.request.Request(url, headers=headers, method='GET')
-    try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            return resp.read(), resp.headers.get('Content-Type', 'audio/mpeg')
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return None, None  # No recording for this call
-        raise
+
+    # Try direct content download endpoints
+    endpoints = [
+        f"https://api.8x8.com/storage/{region}/v3/objects/{call_id}/content",
+        f"https://api.8x8.com/storage/{region}/v3/objects/{call_id}/download",
+    ]
+
+    for url in endpoints:
+        req = urllib.request.Request(url, headers=headers, method='GET')
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                content_type = resp.headers.get('Content-Type', 'audio/mpeg')
+                data = resp.read()
+                if data:
+                    log(f"  Downloaded {len(data)/1024:.0f}KB via {url.split('/')[-1]}")
+                    return data, content_type
+        except urllib.error.HTTPError as e:
+            body = e.read().decode('utf-8')[:100]
+            log(f"  Download endpoint {url.split('/')[-1]} error {e.code}: {body}")
+        except Exception as e:
+            log(f"  Download endpoint error: {e}")
+
+    return None, None
+
 
 # ── TRANSCRIBE ────────────────────────────────────────────────────────────
 
