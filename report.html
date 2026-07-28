@@ -383,10 +383,21 @@ function rowsToObjects(rows) {
   });
 }
 
+function parseSheetDate(str) {
+  // Handle DD/MM/YYYY HH:MM:SS format from Google Sheets
+  if (!str) return null;
+  // Try DD/MM/YYYY format first
+  const ddmm = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (ddmm) return new Date(parseInt(ddmm[3]), parseInt(ddmm[2])-1, parseInt(ddmm[1]));
+  // Fall back to standard parsing
+  return new Date(str);
+}
+
 function filterRows(objs, dateFrom, dateTo, rep) {
   const from=new Date(dateFrom), to=new Date(dateTo); to.setHours(23,59,59);
   return objs.filter(r => {
-    const d=new Date(r['Date']);
+    const d = parseSheetDate(r['Date']);
+    if (!d || isNaN(d.getTime())) return false;
     const dateOk = d>=from && d<=to;
     const repOk  = !rep || r['Rep']===rep;
     return dateOk && repOk;
