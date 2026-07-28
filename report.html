@@ -4,118 +4,197 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QCG Coaching Report Generator</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --navy:#0B1F3A;--blue:#1A3D6B;--mid:#2563A8;--accent:#3B82F6;--light:#EFF6FF;
-  --bg:#F8FAFC;--white:#FFFFFF;--border:#E2E8F0;--text:#0F172A;--muted:#64748B;
-  --green:#16A34A;--green-l:#DCFCE7;--amber:#D97706;--amber-l:#FEF3C7;
-  --red:#DC2626;--red-l:#FEE2E2;
-  --shadow:0 1px 8px rgba(11,31,58,0.08);--shadow-lg:0 8px 32px rgba(11,31,58,0.12);
+  --purple:   #AC4B82;
+  --purple-l: #D19BB9;
+  --purple-xl:#F5EBF1;
+  --dark:     #202331;
+  --dark2:    #2B2E3E;
+  --grey:     #F4F4F4;
+  --white:    #FFFFFF;
+  --text:     #202331;
+  --muted:    #6B7280;
+  --border:   #E5E7EB;
+  --shadow:   0 2px 12px rgba(32,35,49,0.08);
+  --shadow-lg:0 8px 32px rgba(32,35,49,0.14);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
+body{font-family:'Jost',sans-serif;background:var(--grey);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
 
-.header{background:var(--navy);height:56px;display:flex;align-items:center;padding:0 28px;gap:14px;position:sticky;top:0;z-index:100;}
-.logo{font-size:16px;font-weight:600;color:#fff;letter-spacing:-.3px;}
-.logo span{color:var(--accent);}
-.header-sep{width:1px;height:18px;background:rgba(255,255,255,.15);}
-.header-sub{font-size:12px;color:rgba(255,255,255,.45);}
+/* ── HEADER ── */
+.header{background:var(--dark);padding:0 36px;height:64px;display:flex;align-items:center;gap:16px;}
+.header-logo{display:flex;align-items:center;gap:12px;}
+.logo-mark{width:36px;height:36px;}
+.logo-text{font-family:'Jost',sans-serif;font-size:15px;font-weight:700;color:var(--white);letter-spacing:.02em;line-height:1.2;}
+.logo-text span{display:block;font-weight:300;font-size:11px;color:var(--purple-l);letter-spacing:.08em;text-transform:uppercase;}
+.header-sep{width:1px;height:24px;background:rgba(255,255,255,.15);margin:0 4px;}
+.header-sub{font-size:12px;color:rgba(255,255,255,.45);font-weight:400;letter-spacing:.06em;text-transform:uppercase;}
 .header-right{margin-left:auto;}
-.nav-link{font-family:'Inter',sans-serif;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:5px 12px;cursor:pointer;text-decoration:none;transition:all .15s;}
-.nav-link:hover{background:rgba(255,255,255,.12);color:#fff;}
+.nav-btn{font-family:'Jost',sans-serif;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:6px 14px;cursor:pointer;text-decoration:none;transition:all .15s;letter-spacing:.04em;text-transform:uppercase;}
+.nav-btn:hover{background:rgba(255,255,255,.12);color:var(--white);}
 
-.main{max-width:860px;margin:0 auto;padding:36px 20px;}
+/* ── HERO STRIP ── */
+.hero{background:var(--purple);padding:32px 36px 28px;}
+.hero h1{font-family:'Jost',sans-serif;font-size:26px;font-weight:700;color:var(--white);margin-bottom:6px;}
+.hero p{font-size:13px;color:rgba(255,255,255,.75);font-weight:300;}
 
-.card{background:var(--white);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:24px;}
-.card-head{padding:18px 24px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
-.card-icon{width:34px;height:34px;background:var(--light);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
-.card-title{font-size:14px;font-weight:600;}
-.card-sub{font-size:12px;color:var(--muted);margin-top:1px;}
-.card-body{padding:22px 24px;}
+/* ── MAIN ── */
+.main{max-width:820px;margin:0 auto;padding:36px 20px;}
 
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
-.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;}
-.field label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:5px;}
-.field select,.field input{font-family:'Inter',sans-serif;font-size:13px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;width:100%;outline:none;transition:border .15s;appearance:none;}
-.field select:focus,.field input:focus{border-color:var(--accent);background:var(--white);}
+/* ── CARD ── */
+.card{background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px;}
+.card-head{padding:20px 28px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.card-icon{width:36px;height:36px;background:var(--purple-xl);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.card-title{font-size:14px;font-weight:700;color:var(--dark);letter-spacing:.01em;}
+.card-sub{font-size:12px;color:var(--muted);margin-top:1px;font-weight:400;}
+.card-body{padding:24px 28px;}
 
-.btn{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:10px 20px;border-radius:8px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:8px;}
-.btn-primary{background:var(--mid);color:#fff;}
-.btn-primary:hover{background:var(--blue);}
+/* ── FORM ── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.field label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:block;margin-bottom:5px;}
+.field input,.field select{
+  font-family:'Jost',sans-serif;font-size:13px;color:var(--text);
+  background:var(--grey);border:1.5px solid var(--border);border-radius:5px;
+  padding:9px 12px;width:100%;outline:none;transition:border .15s;
+  appearance:none;
+}
+.field select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;
+}
+.field input:focus,.field select:focus{border-color:var(--purple);background:var(--white);}
+
+/* ── BUTTON ── */
+.btn{font-family:'Jost',sans-serif;font-size:13px;font-weight:700;padding:11px 24px;border-radius:5px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:8px;letter-spacing:.03em;text-transform:uppercase;}
+.btn-primary{background:var(--purple);color:var(--white);}
+.btn-primary:hover{background:#9A4374;}
 .btn-primary:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;}
-.btn-green{background:var(--green);color:#fff;font-size:14px;padding:11px 24px;}
-.btn-green:hover{background:#178057;}
-.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
-.btn-outline:hover{border-color:var(--mid);color:var(--mid);}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text);}
+.btn-outline:hover{border-color:var(--purple);color:var(--purple);}
+.btn-full{width:100%;justify-content:center;padding:13px;}
 
-.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;}
+.spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.3);border-top-color:var(--white);border-radius:50%;animation:spin .7s linear infinite;display:none;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
-.status-box{padding:14px 16px;border-radius:10px;font-size:13px;margin-bottom:16px;display:none;}
+/* ── STATUS ── */
+.status-box{padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:16px;display:none;}
 .status-box.show{display:block;}
-.status-box.info{background:var(--light);border:1px solid #BFDBFE;color:var(--mid);}
-.status-box.error{background:var(--red-l);border:1px solid #FCA5A5;color:var(--red);}
-.status-box.success{background:var(--green-l);border:1px solid #86EFAC;color:var(--green);}
+.status-box.info{background:var(--purple-xl);border:1px solid var(--purple-l);color:var(--purple);}
+.status-box.error{background:#FEE2E2;border:1px solid #FCA5A5;color:#DC2626;}
+.status-box.success{background:#DCFCE7;border:1px solid #86EFAC;color:#16A34A;}
 
+/* ── PROGRESS ── */
 .progress{margin-bottom:16px;display:none;}
 .progress.show{display:block;}
-.progress-label{font-size:12px;color:var(--muted);margin-bottom:6px;}
-.progress-steps{display:flex;flex-direction:column;gap:6px;}
+.progress-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;}
+.progress-steps{display:flex;flex-direction:column;gap:7px;}
 .step-item{display:flex;align-items:center;gap:10px;font-size:13px;}
-.step-dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;}
-.step-dot.done{background:var(--green);border-color:var(--green);color:#fff;}
-.step-dot.running{background:var(--light);border-color:var(--accent);}
-.step-dot.running::after{content:'';width:8px;height:8px;border:1.5px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;}
-.step-dot.pending{background:var(--bg);}
+.step-dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+.step-dot.done{background:var(--purple);border-color:var(--purple);color:var(--white);}
+.step-dot.running{background:var(--purple-xl);border-color:var(--purple);}
+.step-dot.running::after{content:'';width:8px;height:8px;border:1.5px solid var(--purple);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;}
+.step-dot.pending{background:var(--grey);}
 .step-label{color:var(--text);}
 .step-label.muted{color:var(--muted);}
 
-.notice{padding:10px 14px;border-radius:8px;font-size:12px;color:var(--amber);background:var(--amber-l);border:1px solid #FCD34D;margin-bottom:16px;}
+/* ── DIVIDER ── */
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
+
+/* ── FOOTER ── */
+.footer{text-align:center;padding:24px;color:var(--muted);font-size:11px;letter-spacing:.04em;}
+
+@media(max-width:640px){
+  .form-row{grid-template-columns:1fr;}
+  .hero{padding:24px 20px;}
+  .card-body{padding:20px;}
+}
 </style>
 </head>
 <body>
 
 <header class="header">
-  <div class="logo">QCG <span>Insurance</span></div>
+  <div class="header-logo">
+    <svg class="logo-mark" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="18" cy="18" r="17" stroke="#AC4B82" stroke-width="1.5" fill="none"/>
+      <circle cx="18" cy="18" r="12" stroke="#AC4B82" stroke-width="1.5" fill="none"/>
+      <circle cx="18" cy="18" r="7" stroke="#AC4B82" stroke-width="1.5" fill="none"/>
+      <line x1="23" y1="23" x2="29" y2="29" stroke="#AC4B82" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <div class="logo-text">Quality Care Group<span>Call Intelligence</span></div>
+  </div>
   <div class="header-sep"></div>
-  <div class="header-sub">Coaching Report Generator</div>
+  <div class="header-sub">Coaching Reports</div>
   <div class="header-right">
-    <a class="nav-link" href="index.html">← Call Analyser</a>
+    <a class="nav-btn" href="index.html">← Call Analyser</a>
   </div>
 </header>
 
+<div class="hero">
+  <h1>Weekly Coaching Report Generator</h1>
+  <p>Pulls live data from your Google Sheet, generates AI coaching insights, and downloads a branded report ready for Josh's 1-1s.</p>
+</div>
+
 <main class="main">
 
-  <!-- Config card -->
+  <div class="card" id="settingsCard">
+    <div class="card-head">
+      <div class="card-icon">⚙</div>
+      <div>
+        <div class="card-title">Settings</div>
+        <div class="card-sub" id="settingsStatus">Enter password to configure API keys</div>
+      </div>
+      <div style="margin-left:auto">
+        <button class="btn btn-outline" onclick="toggleSettings()" id="settingsToggle" style="font-size:11px;padding:6px 14px">Unlock Settings</button>
+      </div>
+    </div>
+    <div id="settingsBody" style="display:none">
+      <div class="card-body">
+        <div class="form-row" style="margin-bottom:14px">
+          <div class="field">
+            <label>Settings Password</label>
+            <input type="password" id="settingsPassword" placeholder="Enter password..." onkeydown="if(event.key==='Enter')unlockSettings()">
+          </div>
+          <div class="field" style="display:flex;align-items:flex-end">
+            <button class="btn btn-primary" onclick="unlockSettings()" style="width:100%;justify-content:center">Unlock</button>
+          </div>
+        </div>
+        <div id="settingsError" style="color:#DC2626;font-size:12px;margin-top:-8px;margin-bottom:8px;display:none">Incorrect password</div>
+      </div>
+    </div>
+    <div id="settingsFields" style="display:none">
+      <div class="card-body">
+        <div class="form-row">
+          <div class="field">
+            <label>OpenAI API Key</label>
+            <input type="password" id="openaiKey" placeholder="sk-proj-...">
+          </div>
+          <div class="field">
+            <label>Google Sheets Script URL</label>
+            <input type="text" id="sheetsUrl" placeholder="https://script.google.com/macros/s/...">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <button class="btn btn-primary" onclick="saveSettings()" style="font-size:11px;padding:7px 16px">Save Keys</button>
+          <button class="btn btn-outline" onclick="lockSettings()" style="font-size:11px;padding:7px 16px">Lock</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-head">
       <div class="card-icon">📋</div>
       <div>
-        <div class="card-title">Generate weekly coaching report</div>
-        <div class="card-sub">Pulls from Google Sheet, generates with GPT-4o, downloads as Word document</div>
+        <div class="card-title">Report Parameters</div>
+        <div class="card-sub">Select rep and date range for the coaching report</div>
       </div>
     </div>
     <div class="card-body">
-
-      <div class="notice" id="setupNotice">
-        ⚠ API keys and Sheet URL must be configured — same settings as the call analyser.
-      </div>
-
       <div class="form-row">
         <div class="field">
-          <label>OpenAI API Key</label>
-          <input type="password" id="openaiKey" placeholder="sk-proj-...">
-        </div>
-        <div class="field">
-          <label>Google Sheets Script URL</label>
-          <input type="text" id="sheetsUrl" placeholder="https://script.google.com/macros/s/...">
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="field">
-          <label>Rep (leave blank for all reps)</label>
+          <label>Rep</label>
           <select id="repSelect">
             <option value="">All reps — full team report</option>
             <option value="Steve Taylor">Steve Taylor</option>
@@ -133,7 +212,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
           </select>
         </div>
       </div>
-
       <div class="form-row" id="customDates" style="display:none">
         <div class="field">
           <label>From date</label>
@@ -145,603 +223,595 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         </div>
       </div>
 
-      <div id="statusBox" class="status-box"></div>
+      <hr class="divider">
 
+      <div id="statusBox" class="status-box"></div>
       <div class="progress" id="progressBox">
-        <div class="progress-label">Generating report...</div>
+        <div class="progress-label">Generating report</div>
         <div class="progress-steps" id="progressSteps"></div>
       </div>
 
-      <button class="btn btn-green" id="generateBtn" onclick="generate()">
-        <span id="generateLabel">Generate coaching report</span>
+      <button class="btn btn-primary btn-full" id="generateBtn" onclick="generate()">
+        <span id="generateLabel">Generate Coaching Report</span>
         <div class="spinner" id="generateSpinner"></div>
       </button>
-
     </div>
   </div>
 
 </main>
 
+<div class="footer">Quality Care Group &nbsp;·&nbsp; hello@qcaregroup.co.uk &nbsp;·&nbsp; www.qcaregroup.co.uk</div>
+
 <script>
-// ── CONFIG ────────────────────────────────────────────────────────────────
 const KEY_STORE    = 'qcg_openai_key';
 const SHEETS_STORE = 'qcg_sheets_url';
-
 const REPS = ['Steve Taylor','Lucy Sandle','Ryan Davenport','Cameron Montrose','Sara Bosworth'];
+const SHEET_ID = '1jJyifPyLgN7iQ4akxX6wdEkr5AjGiC8OYPYIhzgfsk8';
+const SETTINGS_PASSWORD = 'JQCG*2026';
+const SETTINGS_UNLOCKED = 'qcg_settings_unlocked';
 
-const OUTCOMES = {
-  meeting_booked:'Meeting booked', follow_up_agreed:'Follow-up agreed',
-  not_interested:'Not interested', no_answer:'No answer', callback_requested:'Callback requested'
+const BRAND = {
+  purple:   '#AC4B82',
+  purpleL:  '#D19BB9',
+  purpleXL: '#F5EBF1',
+  dark:     '#202331',
+  dark2:    '#2B2E3E',
+  grey:     '#F4F4F4',
+  white:    '#FFFFFF',
+  muted:    '#6B7280',
+  border:   '#E5E7EB',
+  green:    '#16A34A',
+  greenL:   '#DCFCE7',
+  amber:    '#D97706',
+  amberL:   '#FEF3C7',
+  red:      '#DC2626',
+  redL:     '#FEE2E2',
 };
 
-// ── INIT ──────────────────────────────────────────────────────────────────
 window.onload = function() {
-  const key   = localStorage.getItem(KEY_STORE) || '';
-  const url   = localStorage.getItem(SHEETS_STORE) || '';
-  if (key) document.getElementById('openaiKey').value = key;
-  if (url) document.getElementById('sheetsUrl').value = url;
-  if (key && url) document.getElementById('setupNotice').style.display = 'none';
-
-  // Default date range to last 7 days
+  // Set default dates
   const today = new Date();
-  const week  = new Date(today); week.setDate(today.getDate() - 7);
+  const week  = new Date(today); week.setDate(today.getDate()-7);
   document.getElementById('dateTo').value   = today.toISOString().split('T')[0];
   document.getElementById('dateFrom').value = week.toISOString().split('T')[0];
+  // Update settings status
+  const hasKey = !!localStorage.getItem(KEY_STORE);
+  const hasUrl = !!localStorage.getItem(SHEETS_STORE);
+  if (hasKey && hasUrl) {
+    document.getElementById('settingsStatus').textContent = '✓ API keys configured — ready to generate';
+    document.getElementById('settingsStatus').style.color = '#16A34A';
+  }
 };
+
+function toggleSettings() {
+  const body = document.getElementById('settingsBody');
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  document.getElementById('settingsToggle').textContent = isHidden ? 'Cancel' : 'Unlock Settings';
+  if (isHidden) document.getElementById('settingsPassword').focus();
+}
+
+function unlockSettings() {
+  const pw = document.getElementById('settingsPassword').value;
+  if (pw !== SETTINGS_PASSWORD) {
+    document.getElementById('settingsError').style.display = 'block';
+    document.getElementById('settingsPassword').value = '';
+    return;
+  }
+  document.getElementById('settingsError').style.display = 'none';
+  document.getElementById('settingsBody').style.display = 'none';
+  document.getElementById('settingsFields').style.display = 'block';
+  document.getElementById('settingsToggle').textContent = 'Lock';
+  // Fill in saved keys
+  const key = localStorage.getItem(KEY_STORE)||'';
+  const url = localStorage.getItem(SHEETS_STORE)||'';
+  if (key) document.getElementById('openaiKey').value = key;
+  if (url) document.getElementById('sheetsUrl').value = url;
+}
+
+function saveSettings() {
+  const key = document.getElementById('openaiKey').value.trim();
+  const url = document.getElementById('sheetsUrl').value.trim();
+  if (key) localStorage.setItem(KEY_STORE, key);
+  if (url) localStorage.setItem(SHEETS_STORE, url);
+  lockSettings();
+  document.getElementById('settingsStatus').textContent = '✓ API keys saved — ready to generate';
+  document.getElementById('settingsStatus').style.color = '#16A34A';
+}
+
+function lockSettings() {
+  document.getElementById('settingsFields').style.display = 'none';
+  document.getElementById('settingsBody').style.display = 'none';
+  document.getElementById('settingsToggle').textContent = 'Unlock Settings';
+  document.getElementById('settingsPassword').value = '';
+}
 
 function periodChanged() {
   const custom = document.getElementById('periodSelect').value === 'custom';
   document.getElementById('customDates').style.display = custom ? 'grid' : 'none';
 }
-
-// ── UTILITIES ─────────────────────────────────────────────────────────────
 function showStatus(msg, type) {
   const box = document.getElementById('statusBox');
   box.textContent = msg; box.className = 'status-box show ' + type;
 }
 function hideStatus() { document.getElementById('statusBox').className = 'status-box'; }
 
-function setStep(steps, idx, state) {
-  const dots   = document.querySelectorAll('.step-dot');
-  const labels = document.querySelectorAll('.step-label');
-  if (dots[idx]) { dots[idx].className = 'step-dot ' + state; }
-  if (labels[idx]) { labels[idx].className = 'step-label' + (state === 'pending' ? ' muted' : ''); }
-}
-
 function buildProgress(steps) {
-  const box = document.getElementById('progressBox');
   const list = document.getElementById('progressSteps');
   list.innerHTML = steps.map((s,i) =>
     `<div class="step-item">
       <div class="step-dot pending" id="sdot-${i}"></div>
       <div class="step-label muted" id="slabel-${i}">${s}</div>
-    </div>`
-  ).join('');
-  box.className = 'progress show';
+    </div>`).join('');
+  document.getElementById('progressBox').className = 'progress show';
 }
 function stepDone(i)    { document.getElementById('sdot-'+i).className='step-dot done'; document.getElementById('slabel-'+i).className='step-label'; }
 function stepRunning(i) { document.getElementById('sdot-'+i).className='step-dot running'; document.getElementById('slabel-'+i).className='step-label'; }
 
-// ── FETCH DATA FROM SHEET ─────────────────────────────────────────────────
-async function fetchSheetData(sheetsUrl, dateFrom, dateTo, repFilter) {
-  const params = new URLSearchParams({ action:'getData', dateFrom, dateTo, rep: repFilter||'' });
-  const res = await fetch(sheetsUrl + '?' + params.toString(), { method:'GET', mode:'no-cors' });
-  // no-cors means we can't read response — need to use a different approach
-  // Instead, we'll encode request params and use a GET with callback pattern
-  // Actually for reading we need a different endpoint — see note below
-  throw new Error('SHEET_READ_NEEDED');
-}
-
-// Since no-cors blocks reading responses, we use a secondary approach:
-// The report generator reads data via a public Sheet URL (CSV export)
-// This works because Google Sheets CSV export is publicly accessible
-async function fetchScoresCSV(sheetId, dateFrom, dateTo) {
-  // Google Sheets CSV export URL for the Scores tab (gid=0 is first sheet, but Scores is tab 2)
-  // We'll use the IMPORTDATA approach — fetch the published CSV
-  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Scores`;
-  const res  = await fetch(url);
-  if (!res.ok) throw new Error('Could not read Sheet — make sure it is shared publicly');
-  const text = await res.text();
-  return parseCSV(text);
-}
-
-async function fetchTabCSV(sheetId, tabName) {
-  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
-  const res  = await fetch(url);
-  if (!res.ok) throw new Error('Could not read ' + tabName + ' tab');
+async function fetchTabCSV(tabName) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Could not read ' + tabName + ' — make sure Sheet is shared publicly');
   return parseCSV(await res.text());
 }
 
 function parseCSV(text) {
   const rows = [];
-  const lines = text.split('\n');
-  lines.forEach(line => {
+  text.split('\n').forEach(line => {
     if (!line.trim()) return;
-    const row = [];
-    let inQ = false, cell = '';
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i];
-      if (c === '"' && !inQ) { inQ = true; }
-      else if (c === '"' && inQ && line[i+1] === '"') { cell += '"'; i++; }
-      else if (c === '"' && inQ) { inQ = false; }
-      else if (c === ',' && !inQ) { row.push(cell); cell = ''; }
-      else { cell += c; }
+    const row = []; let inQ=false, cell='';
+    for (let i=0;i<line.length;i++) {
+      const c=line[i];
+      if (c==='"'&&!inQ) inQ=true;
+      else if (c==='"'&&inQ&&line[i+1]==='"') { cell+='"'; i++; }
+      else if (c==='"'&&inQ) inQ=false;
+      else if (c===','&&!inQ) { row.push(cell); cell=''; }
+      else cell+=c;
     }
-    row.push(cell);
-    rows.push(row);
+    row.push(cell); rows.push(row);
   });
   return rows;
-}
-
-function filterByDate(rows, headers, dateFrom, dateTo) {
-  const dateIdx = headers.indexOf('Date');
-  if (dateIdx === -1) return rows;
-  const from = new Date(dateFrom);
-  const to   = new Date(dateTo); to.setHours(23,59,59);
-  return rows.filter(row => {
-    const d = new Date(row[dateIdx]);
-    return d >= from && d <= to;
-  });
-}
-
-function filterByRep(rows, headers, rep) {
-  if (!rep) return rows;
-  const repIdx = headers.indexOf('Rep');
-  if (repIdx === -1) return rows;
-  return rows.filter(row => row[repIdx] === rep);
 }
 
 function rowsToObjects(rows) {
   if (rows.length < 2) return [];
   const headers = rows[0];
   return rows.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = row[i] || ''; });
+    const obj={};
+    headers.forEach((h,i) => { obj[h] = row[i]||''; });
     return obj;
   });
 }
 
-// ── BUILD REP SUMMARY ─────────────────────────────────────────────────────
-function buildRepSummary(rep, scoreRows, flagRows, verbatimRows, narrativeRows) {
-  const scores    = scoreRows.filter(r => r['Rep'] === rep);
-  const flags     = flagRows.filter(r => r['Rep'] === rep);
-  const verbatim  = verbatimRows.filter(r => r['Rep'] === rep);
-  const narratives= narrativeRows.filter(r => r['Rep'] === rep);
+function filterRows(objs, dateFrom, dateTo, rep) {
+  const from=new Date(dateFrom), to=new Date(dateTo); to.setHours(23,59,59);
+  return objs.filter(r => {
+    const d=new Date(r['Date']);
+    const dateOk = d>=from && d<=to;
+    const repOk  = !rep || r['Rep']===rep;
+    return dateOk && repOk;
+  });
+}
 
-  if (!scores.length) return null;
+function buildRepSummary(rep, scores, flags, verbatim, narratives) {
+  const rs = scores.filter(r=>r['Rep']===rep);
+  const fl = flags.filter(r=>r['Rep']===rep);
+  const vb = verbatim.filter(r=>r['Rep']===rep);
+  const nr = narratives.filter(r=>r['Rep']===rep);
+  if (!rs.length) return null;
 
-  // Score averages
-  const avg = (key) => {
-    const vals = scores.map(r => parseFloat(r[key])).filter(v => !isNaN(v));
-    return vals.length ? (vals.reduce((a,b) => a+b, 0) / vals.length).toFixed(1) : 'N/A';
+  const avg = key => {
+    const vals=rs.map(r=>parseFloat(r[key])).filter(v=>!isNaN(v));
+    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : 'N/A';
   };
-
-  // Flag frequency
-  const flagCounts = {};
-  flags.forEach(f => { flagCounts[f['Flag']] = (flagCounts[f['Flag']] || 0) + 1; });
-
-  // Top verbatim moments
-  const closingAttempts = verbatim.filter(v => v['Moment Type'] === 'closing_attempt').slice(0,3);
-  const missedQuestions = verbatim.filter(v => v['Moment Type'] === 'missed_question').slice(0,3);
-  const strongQuestions = verbatim.filter(v => v['Moment Type'] === 'strong_question').slice(0,2);
-
-  // Outcomes
-  const outcomeCounts = {};
-  scores.forEach(s => { outcomeCounts[s['Outcome']] = (outcomeCounts[s['Outcome']] || 0) + 1; });
-
-  // Rep behaviours
-  const behAvg = (key) => {
-    const yes = scores.filter(r => r[key] === 'Yes').length;
-    return scores.length ? Math.round((yes/scores.length)*100) : 0;
+  const flagCounts={};
+  fl.forEach(f=>{ flagCounts[f['Flag']]=(flagCounts[f['Flag']]||0)+1; });
+  const outcomeCounts={};
+  rs.forEach(r=>{ outcomeCounts[r['Outcome']]=(outcomeCounts[r['Outcome']]||0)+1; });
+  const behAvg = key => {
+    const yes=rs.filter(r=>r[key]==='Yes').length;
+    return rs.length ? Math.round(yes/rs.length*100) : 0;
   };
-
-  // Prospect intelligence
-  const brokers   = scores.map(r => r['Current Broker']).filter(v => v && v !== 'null' && v !== '');
-  const challenges= scores.map(r => r['Biggest Challenge']).filter(v => v && v !== 'null' && v !== '');
-  const claimsCount = scores.filter(r => r['Claims Mentioned'] === 'Yes').length;
-  const premIncrease = scores.filter(r => r['Premium Increase'] === 'Yes').length;
-
-  // Last 5 narratives
-  const recentNarratives = narratives.slice(-5).map(n => n['Narrative']).filter(Boolean);
-
-  // Priority tier
-  const overallAvg = parseFloat(avg('Score Overall'));
-  const tier = overallAvg < 5 ? 'URGENT' : overallAvg < 6.5 ? 'MONITOR' : 'ON TRACK';
-
+  const overall = parseFloat(avg('Score Overall'));
+  const tier = overall<5?'URGENT':overall<6.5?'MONITOR':'ON TRACK';
   return {
-    rep, tier, calls: scores.length,
-    scores: {
-      overall:    avg('Score Overall'),
-      opening:    avg('Score Opening'),
-      objections: avg('Score Objections'),
-      questions:  avg('Score Questions'),
-      closing:    avg('Score Closing'),
+    rep, tier, calls:rs.length, scores:{
+      overall:avg('Score Overall'), opening:avg('Score Opening'),
+      objections:avg('Score Objections'), questions:avg('Score Questions'), closing:avg('Score Closing'),
     },
     flagCounts, outcomeCounts,
-    closingAttempts, missedQuestions, strongQuestions,
-    recentNarratives, brokers, challenges,
-    claimsCount, premIncrease,
-    behaviours: {
-      careSpecialism:   behAvg('Mentioned Care Specialism'),
-      claimsTeam:       behAvg('Mentioned Claims Team'),
-      renewalDate:      behAvg('Asked Renewal Date'),
-      claimsHistory:    behAvg('Asked Claims History'),
-      currentBroker:    behAvg('Asked Current Broker'),
-      bizChallenges:    behAvg('Asked Business Challenges'),
-      consultative:     behAvg('Consultative Approach'),
-      genericPitch:     behAvg('Generic Pitch'),
+    closingAttempts: vb.filter(v=>v['Moment Type']==='closing_attempt').slice(0,3),
+    missedQuestions: vb.filter(v=>v['Moment Type']==='missed_question').slice(0,3),
+    strongQuestions: vb.filter(v=>v['Moment Type']==='strong_question').slice(0,2),
+    recentNarratives: nr.slice(-5).map(n=>n['Narrative']).filter(Boolean),
+    brokers: rs.map(r=>r['Current Broker']).filter(v=>v&&v!=='null'&&v!==''),
+    challenges: rs.map(r=>r['Biggest Challenge']).filter(v=>v&&v!=='null'&&v!==''),
+    claimsCount: rs.filter(r=>r['Claims Mentioned']==='Yes').length,
+    premIncrease: rs.filter(r=>r['Premium Increase']==='Yes').length,
+    behaviours:{
+      careSpecialism:behAvg('Mentioned Care Specialism'),
+      claimsTeam:behAvg('Mentioned Claims Team'),
+      renewalDate:behAvg('Asked Renewal Date'),
+      claimsHistory:behAvg('Asked Claims History'),
+      currentBroker:behAvg('Asked Current Broker'),
+      bizChallenges:behAvg('Asked Business Challenges'),
+      consultative:behAvg('Consultative Approach'),
+      genericPitch:behAvg('Generic Pitch'),
     },
-    strengths: scores.map(s => s['Strength']).filter(Boolean).slice(-3),
-    focuses:   scores.map(s => s['Focus']).filter(Boolean).slice(-3),
+    strengths: rs.map(r=>r['Strength']).filter(Boolean).slice(-3),
+    focuses:   rs.map(r=>r['Focus']).filter(Boolean).slice(-3),
   };
 }
 
-// ── GPT-4O COACHING NARRATIVE ─────────────────────────────────────────────
-async function generateCoachingNarrative(repSummary, openaiKey) {
-  const s = repSummary;
-  const flagList = Object.entries(s.flagCounts)
-    .sort((a,b) => b[1]-a[1])
-    .map(([f,c]) => `${f}: ${c} of ${s.calls} calls`)
-    .join(', ');
-
-  const behaviourList = Object.entries(s.behaviours)
-    .map(([k,v]) => `${k}: ${v}%`)
-    .join(', ');
-
-  const closingQuotes = s.closingAttempts.map(v => `"${v['Quote']}"`).join(' | ');
-  const missedQ = s.missedQuestions.map(v => v['Quote']).join(' | ');
-  const strongQ = s.strongQuestions.map(v => `"${v['Quote']}"`).join(' | ');
-  const narrativeThread = s.recentNarratives.join(' // ');
-
+async function generateCoachingNarrative(s, openaiKey) {
+  const flagList = Object.entries(s.flagCounts).sort((a,b)=>b[1]-a[1])
+    .map(([f,c])=>`${f}: ${c}/${s.calls}`).join(', ');
+  const behList = Object.entries(s.behaviours).map(([k,v])=>`${k}: ${v}%`).join(', ');
   const prompt = [
-    'You are a sales coach writing a weekly coaching report for Josh, the manager of a care sector insurance business development team at QCG Insurance.',
-    '',
-    'QCG is a specialist care sector broker — key differentiators are care-only specialism, in-house claims team, mock CQC inspections, and bespoke cover including medical malpractice and abuse cover.',
-    '',
-    'Write a coaching report for ' + s.rep + ' covering the past week. Be specific, honest, and grounded in the data. Do not be generic. Every claim must reference actual data provided.',
-    '',
-    'DATA:',
-    'Calls this period: ' + s.calls,
-    'Priority tier: ' + s.tier,
-    'Scores (avg): Overall=' + s.scores.overall + ' Opening=' + s.scores.opening + ' Objections=' + s.scores.objections + ' Questions=' + s.scores.questions + ' Closing=' + s.scores.closing,
-    'Outcomes: ' + JSON.stringify(s.outcomeCounts),
-    'Behavioural flags: ' + flagList,
-    'Rep behaviours (%): ' + behaviourList,
-    'Closing attempt quotes: ' + (closingQuotes || 'none captured'),
-    'Missed question moments: ' + (missedQ || 'none captured'),
-    'Strong questions asked: ' + (strongQ || 'none captured'),
-    'Recent call narratives: ' + (narrativeThread || 'none'),
-    'Current brokers mentioned: ' + (s.brokers.join(', ') || 'none'),
-    'Claims mentioned: ' + s.claimsCount + ' of ' + s.calls + ' calls',
-    'Premium increase mentioned: ' + s.premIncrease + ' of ' + s.calls + ' calls',
-    'Biggest challenges mentioned: ' + (s.challenges.join('; ') || 'none'),
-    'Recent strengths noted: ' + (s.strengths.join(' | ') || 'none'),
-    'Recent focus areas noted: ' + (s.focuses.join(' | ') || 'none'),
-    '',
-    'Write the following sections. Be direct and specific. Use the actual data. Keep each section tight.',
-    '',
-    'Return as JSON with these exact keys:',
-    '{',
-    '  "rep_summary": "2-3 sentence frank summary of how this rep performed this week and the key pattern",',
-    '  "top_strength": "one specific strength with evidence from the data",',
-    '  "focus_area": "the single most important thing to fix this week, with specific evidence",',
-    '  "agenda": ["4-5 specific 1-1 dialogue prompts Josh can use — questions not instructions"],',
-    '  "short_term_target": "one measurable target for next week",',
-    '  "long_term_goal": "one development goal for the next month",',
-    '  "prospect_insight": "one observation about what this rep is learning about the market from their calls"',
-    '}',
+    'You are a sales coach writing a weekly coaching report for Josh, manager at Quality Care Group (QCG Insurance) — a specialist care sector insurance broker.',
+    'QCG differentiators: care-only specialism, in-house claims team, mock CQC inspections, bespoke cover including medical malpractice and abuse cover.',
+    `Write a coaching report for ${s.rep}. Be specific, honest, grounded in the data. No generic statements.`,
+    '', 'DATA:',
+    `Calls: ${s.calls} | Tier: ${s.tier}`,
+    `Scores: Overall=${s.scores.overall} Opening=${s.scores.opening} Objections=${s.scores.objections} Questions=${s.scores.questions} Closing=${s.scores.closing}`,
+    `Outcomes: ${JSON.stringify(s.outcomeCounts)}`,
+    `Flags: ${flagList}`,
+    `Behaviours: ${behList}`,
+    `Closing attempts: ${s.closingAttempts.map(v=>'"'+v['Quote']+'"').join(' | ')||'none'}`,
+    `Missed questions: ${s.missedQuestions.map(v=>v['Quote']).join(' | ')||'none'}`,
+    `Strong questions: ${s.strongQuestions.map(v=>'"'+v['Quote']+'"').join(' | ')||'none'}`,
+    `Narratives: ${s.recentNarratives.join(' // ')||'none'}`,
+    `Brokers mentioned: ${s.brokers.join(', ')||'none'}`,
+    `Claims mentioned: ${s.claimsCount}/${s.calls} | Premium increase: ${s.premIncrease}/${s.calls}`,
+    `Challenges: ${s.challenges.slice(0,3).join('; ')||'none'}`,
+    '', 'Return ONLY valid JSON:',
+    '{"rep_summary":"2-3 frank sentences on performance and key pattern","top_strength":"specific strength with quote evidence","focus_area":"single most important thing to fix with specific evidence","agenda":["4-5 specific 1-1 dialogue prompts as questions not instructions"],"short_term_target":"one measurable target next week","long_term_goal":"one development goal next month","prospect_insight":"one observation about market intelligence from calls"}',
   ].join('\n');
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + openaiKey },
-    body: JSON.stringify({ model:'gpt-4o', messages:[{role:'user',content:prompt}], temperature:0.3, max_tokens:1200 }),
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+openaiKey},
+    body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content:prompt}],temperature:0.3,max_tokens:1200}),
   });
-  if (!res.ok) throw new Error('GPT-4o failed: ' + res.status);
-  const data = await res.json();
-  let raw = data.choices[0].message.content.trim();
-  if (raw.startsWith('```')) { raw = raw.split('```')[1]; if (raw.startsWith('json')) raw = raw.slice(4); }
+  if (!res.ok) throw new Error('GPT-4o failed: '+res.status);
+  const data=await res.json();
+  let raw=data.choices[0].message.content.trim();
+  if (raw.startsWith('```')) { raw=raw.split('```')[1]; if(raw.startsWith('json')) raw=raw.slice(4); }
   return JSON.parse(raw.trim());
 }
 
-// ── DOCX GENERATION ───────────────────────────────────────────────────────
-// We build the Word doc client-side using a minimal approach
-// since we can't run Node.js in the browser — we generate an HTML file
-// that renders as a clean printable report and can be saved as PDF/Word
-function generateWordHTML(repSummaries, narratives, dateFrom, dateTo, period) {
-  const tierColor = t => t==='URGENT'?'#DC2626':t==='MONITOR'?'#D97706':'#16A34A';
-  const scoreColor = s => parseFloat(s)>=7?'#16A34A':parseFloat(s)>=5?'#D97706':'#DC2626';
+function scoreColor(s) {
+  const n=parseFloat(s);
+  return n>=7?BRAND.green:n>=5?BRAND.amber:BRAND.red;
+}
+function tierColor(t) {
+  return t==='URGENT'?BRAND.red:t==='MONITOR'?BRAND.amber:BRAND.green;
+}
+function tierBg(t) {
+  return t==='URGENT'?BRAND.redL:t==='MONITOR'?BRAND.amberL:BRAND.greenL;
+}
 
-  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>QCG Coaching Report</title>
+function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) {
+  const periodLabel = period==='week'?'Week ending '+dateTo:dateFrom+' to '+dateTo;
+
+  let html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>QCG Coaching Report — ${periodLabel}</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
-  body{font-family:Calibri,Arial,sans-serif;max-width:900px;margin:0 auto;padding:32px;color:#0F172A;font-size:11pt;}
-  h1{font-size:22pt;color:#0B1F3A;margin:0 0 4px;}
-  .sub{font-size:10pt;color:#64748B;margin:0 0 24px;}
-  .rule{border:none;border-top:1.5px solid #E2E8F0;margin:24px 0;}
-  h2{font-size:16pt;color:#0B1F3A;margin:0 0 4px;}
-  h3{font-size:12pt;color:#1A3D6B;margin:16px 0 4px;text-transform:uppercase;letter-spacing:.05em;}
-  table{width:100%;border-collapse:collapse;margin:10px 0;}
-  th{background:#0B1F3A;color:#fff;padding:6px 10px;font-size:9pt;text-align:left;}
-  td{padding:6px 10px;font-size:10pt;border-bottom:1px solid #E2E8F0;}
-  tr:nth-child(even) td{background:#F8FAFC;}
-  .tier{font-weight:700;font-size:13pt;}
-  .score{font-weight:700;font-size:12pt;}
-  .box{border-radius:6px;padding:12px 14px;margin:8px 0;}
-  .green-box{background:#DCFCE7;}
-  .amber-box{background:#FEF3C7;}
-  .blue-box{background:#EFF6FF;}
-  .quote{border-left:3px solid #E2E8F0;padding-left:12px;font-style:italic;font-size:10pt;color:#374151;margin:6px 0;}
-  .agenda-item{padding:5px 0;font-size:10pt;}
-  .agenda-item::before{content:"→ ";color:#2563A8;font-weight:600;}
-  .beh-row{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0;}
-  .beh-chip{font-size:9pt;padding:2px 8px;border-radius:12px;font-weight:500;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Jost',sans-serif;background:#F4F4F4;color:#202331;font-size:11pt;}
+  .page{background:#fff;max-width:900px;margin:0 auto;}
+  /* Cover */
+  .cover{background:#202331;padding:48px 52px;display:flex;align-items:center;gap:24px;}
+  .cover-logo{flex-shrink:0;}
+  .cover-text h1{font-size:26pt;font-weight:700;color:#fff;line-height:1.15;margin-bottom:8px;}
+  .cover-text .sub{font-size:11pt;color:#D19BB9;font-weight:300;}
+  .cover-text .period{font-size:10pt;color:rgba(255,255,255,.5);margin-top:4px;letter-spacing:.04em;}
+  /* Purple accent bar */
+  .accent-bar{height:5px;background:#AC4B82;}
+  /* Section header */
+  .sec-head{background:#AC4B82;padding:14px 52px;display:flex;align-items:center;justify-content:space-between;}
+  .sec-head h2{font-size:14pt;font-weight:700;color:#fff;letter-spacing:.02em;}
+  .sec-head .tag{font-size:9pt;color:rgba(255,255,255,.7);letter-spacing:.06em;text-transform:uppercase;}
+  /* Content area */
+  .content{padding:32px 52px;}
+  /* Team overview table */
+  table{width:100%;border-collapse:collapse;margin:12px 0;}
+  th{background:#202331;color:#fff;padding:8px 12px;font-size:9pt;font-weight:700;text-align:left;letter-spacing:.04em;text-transform:uppercase;}
+  td{padding:8px 12px;font-size:10pt;border-bottom:1px solid #E5E7EB;}
+  tr:nth-child(even) td{background:#F4F4F4;}
+  /* Rep section */
+  .rep-header{background:#2B2E3E;padding:24px 52px;display:flex;align-items:center;justify-content:space-between;}
+  .rep-name{font-size:20pt;font-weight:700;color:#fff;}
+  .rep-meta{text-align:right;}
+  .rep-meta .calls{font-size:22pt;font-weight:700;color:#AC4B82;line-height:1;}
+  .rep-meta .calls-label{font-size:9pt;color:rgba(255,255,255,.5);letter-spacing:.06em;text-transform:uppercase;}
+  .tier-badge{display:inline-block;padding:4px 14px;border-radius:3px;font-size:10pt;font-weight:700;margin-top:8px;}
+  /* Score grid */
+  .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;}
+  .score-card{border:1px solid #E5E7EB;border-radius:5px;padding:14px 16px;}
+  .score-card .dim{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6B7280;margin-bottom:6px;}
+  .score-card .val{font-size:22pt;font-weight:700;line-height:1;}
+  .score-card .rat{font-size:9pt;color:#6B7280;margin-top:6px;line-height:1.45;}
+  /* Boxes */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;}
+  .box{border-radius:5px;padding:14px 16px;}
+  .box .box-label{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+  .box .box-text{font-size:10pt;line-height:1.5;}
+  .box-strength{background:#DCFCE7;}.box-strength .box-label{color:#16A34A;}
+  .box-focus{background:#FEF3C7;}.box-focus .box-label{color:#D97706;}
+  .box-summary{background:#F5EBF1;}.box-summary .box-label{color:#AC4B82;}
+  .box-target{background:#F4F4F4;border:1px solid #E5E7EB;}.box-target .box-label{color:#6B7280;}
+  /* Verbatim */
+  .verbatim{border-left:3px solid #AC4B82;padding:8px 14px;margin:6px 0;background:#F5EBF1;border-radius:0 4px 4px 0;}
+  .verbatim .vtype{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#AC4B82;margin-bottom:3px;}
+  .verbatim .vquote{font-size:10pt;font-style:italic;color:#202331;line-height:1.45;}
+  /* Behaviours */
+  .beh-grid{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;}
+  .beh-chip{font-size:9pt;padding:3px 10px;border-radius:3px;font-weight:600;}
   .beh-good{background:#DCFCE7;color:#16A34A;}
   .beh-warn{background:#FEF3C7;color:#D97706;}
   .beh-bad{background:#FEE2E2;color:#DC2626;}
+  /* Agenda */
+  .agenda-item{padding:6px 0;font-size:10pt;display:flex;gap:10px;border-bottom:1px solid #E5E7EB;}
+  .agenda-item:last-child{border:none;}
+  .agenda-num{color:#AC4B82;font-weight:700;flex-shrink:0;}
+  /* Section label */
+  .section-label{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6B7280;margin:18px 0 8px;}
+  /* Page break */
   .page-break{page-break-before:always;}
-  @media print{body{padding:16px;}.page-break{page-break-before:always;}}
-</style></head><body>`;
+  /* Footer */
+  .report-footer{background:#202331;padding:14px 52px;display:flex;align-items:center;justify-content:space-between;}
+  .report-footer .fl{font-size:9pt;color:rgba(255,255,255,.4);}
+  /* Flag badge */
+  .flag{font-size:8pt;font-weight:700;padding:2px 8px;border-radius:3px;display:inline-block;margin:2px;font-family:monospace;}
+  .flag-neg{background:#FEE2E2;color:#DC2626;}
+  .flag-pos{background:#DCFCE7;color:#16A34A;}
+  @media print{body{background:#fff;}.page{max-width:100%;}.page-break{page-break-before:always;}}
+</style></head><body><div class="page">`;
 
   // Cover
-  const periodLabel = period === 'week' ? 'Week ending ' + dateTo : dateFrom + ' to ' + dateTo;
-  html += `<h1>QCG Insurance — Weekly Coaching Report</h1>
-<div class="sub">${periodLabel} &nbsp;|&nbsp; Manager: Josh &nbsp;|&nbsp; Confidential</div>`;
+  html += `
+  <div class="cover">
+    <div class="cover-logo">
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+        <circle cx="28" cy="28" r="27" stroke="#AC4B82" stroke-width="2"/>
+        <circle cx="28" cy="28" r="19" stroke="#AC4B82" stroke-width="1.5"/>
+        <circle cx="28" cy="28" r="11" stroke="#AC4B82" stroke-width="1.5"/>
+        <line x1="35" y1="35" x2="45" y2="45" stroke="#AC4B82" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="cover-text">
+      <h1>Weekly Coaching<br>Report</h1>
+      <div class="sub">Quality Care Group &nbsp;·&nbsp; Sales Intelligence</div>
+      <div class="period">${periodLabel} &nbsp;·&nbsp; Manager: Josh &nbsp;·&nbsp; Confidential</div>
+    </div>
+  </div>
+  <div class="accent-bar"></div>`;
 
-  // Team overview table
-  html += `<h3>Team Overview</h3>
-<table><tr><th>Rep</th><th>Calls</th><th>Overall</th><th>Opening</th><th>Objections</th><th>Questions</th><th>Closing</th><th>Meetings</th><th>Tier</th></tr>`;
+  // Team overview
+  html += `
+  <div class="sec-head">
+    <h2>Team Overview</h2>
+    <div class="tag">${repSummaries.length} reps · ${repSummaries.reduce((a,s)=>a+s.calls,0)} calls</div>
+  </div>
+  <div class="content">
+    <table>
+      <tr><th>Rep</th><th>Calls</th><th>Overall</th><th>Opening</th><th>Objections</th><th>Questions</th><th>Closing</th><th>Meetings</th><th>Tier</th></tr>`;
+
   repSummaries.forEach(s => {
-    const meetings = s.outcomeCounts['Meeting booked'] || 0;
+    const meetings = s.outcomeCounts['Meeting booked']||0;
     html += `<tr>
       <td><strong>${s.rep}</strong></td>
-      <td>${s.calls}</td>
-      <td style="color:${scoreColor(s.scores.overall)};font-weight:700">${s.scores.overall}</td>
-      <td style="color:${scoreColor(s.scores.opening)}">${s.scores.opening}</td>
-      <td style="color:${scoreColor(s.scores.objections)}">${s.scores.objections}</td>
-      <td style="color:${scoreColor(s.scores.questions)}">${s.scores.questions}</td>
-      <td style="color:${scoreColor(s.scores.closing)}">${s.scores.closing}</td>
-      <td>${meetings}</td>
-      <td style="color:${tierColor(s.tier)};font-weight:700">${s.tier}</td>
+      <td style="text-align:center">${s.calls}</td>
+      <td style="text-align:center;font-weight:700;color:${scoreColor(s.scores.overall)}">${s.scores.overall}</td>
+      <td style="text-align:center;color:${scoreColor(s.scores.opening)}">${s.scores.opening}</td>
+      <td style="text-align:center;color:${scoreColor(s.scores.objections)}">${s.scores.objections}</td>
+      <td style="text-align:center;color:${scoreColor(s.scores.questions)}">${s.scores.questions}</td>
+      <td style="text-align:center;color:${scoreColor(s.scores.closing)}">${s.scores.closing}</td>
+      <td style="text-align:center">${meetings}</td>
+      <td><span style="font-weight:700;color:${tierColor(s.tier)}">${s.tier}</span></td>
     </tr>`;
   });
-  html += `</table><hr class="rule">`;
+  html += `</table></div>`;
 
   // Rep sections
   repSummaries.forEach((s, si) => {
-    const n = narratives[s.rep] || {};
-    if (si > 0) html += `<div class="page-break"></div>`;
-
-    html += `<h2>${s.rep} <span style="font-size:14pt;color:${tierColor(s.tier)}">${s.tier}</span></h2>
-<div class="sub">${s.calls} calls this period</div>`;
-
-    // Scores
-    html += `<h3>Scores</h3>
-<table><tr><th>Dimension</th><th>Score</th><th>vs Target</th></tr>
-${[['Overall',s.scores.overall],['Opening',s.scores.opening],['Objection Handling',s.scores.objections],['Questions Asked',s.scores.questions],['Closing',s.scores.closing]].map(([dim,sc])=>`
-<tr><td>${dim}</td><td style="color:${scoreColor(sc)};font-weight:700">${sc}/10</td><td style="color:${parseFloat(sc)>=7?'#16A34A':'#DC2626'}">${parseFloat(sc)>=7?'✓ On target':'Below 7.0'}</td></tr>`).join('')}
-</table>`;
-
-    // Behavioural flags
+    const n = narratives[s.rep]||{};
+    const negFlags = ['single_close_attempt','no_close_attempt','terminology_error','missed_buying_signal','pain_point_not_leveraged','failed_to_handle_objection','no_permission_to_talk','generic_pitch','renewal_date_not_asked','current_broker_not_asked'];
     const topFlags = Object.entries(s.flagCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+    html += `<div class="page-break">
+    <div class="rep-header">
+      <div>
+        <div class="rep-name">${s.rep}</div>
+        <div><span class="tier-badge" style="background:${tierBg(s.tier)};color:${tierColor(s.tier)}">${s.tier}</span></div>
+      </div>
+      <div class="rep-meta">
+        <div class="calls">${s.calls}</div>
+        <div class="calls-label">Calls this period</div>
+      </div>
+    </div>
+    <div class="accent-bar"></div>
+    <div class="content">
+
+      <div class="section-label">Dimension Scores</div>
+      <div class="score-grid">`;
+
+    [['Opening','opening'],['Objection Handling','objections'],['Questions Asked','questions'],['Closing','closing']].forEach(([label,key]) => {
+      const sc = s.scores[key];
+      html += `<div class="score-card">
+        <div class="dim">${label}</div>
+        <div class="val" style="color:${scoreColor(sc)}">${sc}<span style="font-size:13pt;color:#6B7280">/10</span></div>
+      </div>`;
+    });
+
+    html += `</div>`;
+
+    // Flags
     if (topFlags.length) {
-      html += `<h3>Behavioural Flags</h3><table><tr><th>Flag</th><th>Count</th><th>of ${s.calls} calls</th></tr>`;
+      html += `<div class="section-label">Behavioural Flags</div><div style="margin-bottom:12px">`;
       topFlags.forEach(([f,c]) => {
-        const isNeg = !['rapport_established','strong_questions_asked','effective_close','buying_signal_identified','credibility_established','specialism_established','claims_test_asked','consultative_approach'].includes(f);
-        html += `<tr><td style="color:${isNeg?'#DC2626':'#16A34A'};font-family:monospace;font-size:9pt">${f}</td><td style="font-weight:700">${c}</td><td>${Math.round(c/s.calls*100)}%</td></tr>`;
+        const isNeg = negFlags.includes(f);
+        html += `<span class="flag ${isNeg?'flag-neg':'flag-pos'}">${f} (${c})</span>`;
       });
-      html += `</table>`;
+      html += `</div>`;
     }
 
-    // Rep behaviours
-    html += `<h3>Qualifying Behaviours</h3><div class="beh-row">`;
-    const behs = [
-      ['Care specialism mentioned', s.behaviours.careSpecialism],
-      ['Claims team mentioned', s.behaviours.claimsTeam],
-      ['Renewal date asked', s.behaviours.renewalDate],
-      ['Claims history asked', s.behaviours.claimsHistory],
-      ['Current broker asked', s.behaviours.currentBroker],
-      ['Business challenges asked', s.behaviours.bizChallenges],
-      ['Consultative approach', s.behaviours.consultative],
-      ['Generic pitch', s.behaviours.genericPitch],
+    // Behaviours
+    html += `<div class="section-label">Qualifying Behaviours</div>
+    <div class="beh-grid">`;
+    const behs=[
+      ['Care specialism',s.behaviours.careSpecialism,true],
+      ['Claims team',s.behaviours.claimsTeam,true],
+      ['Renewal date',s.behaviours.renewalDate,true],
+      ['Claims history',s.behaviours.claimsHistory,true],
+      ['Current broker',s.behaviours.currentBroker,true],
+      ['Biz challenges',s.behaviours.bizChallenges,true],
+      ['Consultative',s.behaviours.consultative,true],
+      ['Generic pitch',s.behaviours.genericPitch,false],
     ];
-    behs.forEach(([label, pct]) => {
-      const isGeneric = label === 'Generic pitch';
-      const cls = isGeneric ? (pct>20?'beh-bad':'beh-good') : (pct>=70?'beh-good':pct>=40?'beh-warn':'beh-bad');
+    behs.forEach(([label,pct,goodIfHigh]) => {
+      const good = goodIfHigh ? pct>=70 : pct<=20;
+      const warn = goodIfHigh ? pct>=40&&pct<70 : pct>20&&pct<=50;
+      const cls  = good?'beh-good':warn?'beh-warn':'beh-bad';
       html += `<span class="beh-chip ${cls}">${label}: ${pct}%</span>`;
     });
     html += `</div>`;
 
-    // Verbatim evidence
+    // Verbatim
     if (s.closingAttempts.length) {
-      html += `<h3>Closing Attempts (verbatim)</h3>`;
-      s.closingAttempts.forEach(v => { html += `<div class="quote">"${v['Quote']}"</div>`; });
+      html += `<div class="section-label">Closing Attempts</div>`;
+      s.closingAttempts.forEach(v => {
+        html += `<div class="verbatim"><div class="vtype">Closing attempt</div><div class="vquote">"${v['Quote']}"</div></div>`;
+      });
     }
     if (s.missedQuestions.length) {
-      html += `<h3>Missed Question Opportunities</h3>`;
-      s.missedQuestions.forEach(v => { html += `<div class="quote">${v['Quote']}</div>`; });
-    }
-    if (s.strongQuestions.length) {
-      html += `<h3>Strong Questions</h3>`;
-      s.strongQuestions.forEach(v => { html += `<div class="quote">"${v['Quote']}"</div>`; });
-    }
-
-    // Prospect intelligence
-    if (s.brokers.length || s.claimsCount || s.challenges.length) {
-      html += `<h3>Prospect Intelligence</h3><table>`;
-      if (s.brokers.length) html += `<tr><td><strong>Brokers mentioned</strong></td><td>${[...new Set(s.brokers)].join(', ')}</td></tr>`;
-      html += `<tr><td><strong>Claims mentioned</strong></td><td>${s.claimsCount} of ${s.calls} calls</td></tr>`;
-      html += `<tr><td><strong>Premium increase flagged</strong></td><td>${s.premIncrease} of ${s.calls} calls</td></tr>`;
-      if (s.challenges.length) html += `<tr><td><strong>Business challenges surfaced</strong></td><td>${s.challenges.slice(0,3).join('; ')}</td></tr>`;
-      html += `</table>`;
+      html += `<div class="section-label">Missed Question Opportunities</div>`;
+      s.missedQuestions.forEach(v => {
+        html += `<div class="verbatim"><div class="vtype">Missed opportunity</div><div class="vquote">${v['Quote']}</div></div>`;
+      });
     }
 
     // GPT narrative
     if (n.rep_summary) {
-      html += `<h3>Rep Summary</h3><div class="blue-box">${n.rep_summary}</div>`;
-      html += `<table><tr>
-        <td style="width:50%;vertical-align:top"><div class="green-box"><strong style="color:#16A34A">TOP STRENGTH</strong><br>${n.top_strength}</div></td>
-        <td style="width:50%;vertical-align:top"><div class="amber-box"><strong style="color:#D97706">FOCUS AREA</strong><br>${n.focus_area}</div></td>
-      </tr></table>`;
-
-      html += `<h3>Suggested 1-1 Agenda</h3>`;
-      (n.agenda||[]).forEach(item => { html += `<div class="agenda-item">${item}</div>`; });
-
-      html += `<table style="margin-top:12px"><tr><th>Short-term target (next week)</th><th>Longer-term goal (next month)</th></tr>
-<tr><td>${n.short_term_target||''}</td><td>${n.long_term_goal||''}</td></tr></table>`;
-
+      html += `<div class="section-label">Rep Summary</div>
+      <div class="box box-summary" style="margin-bottom:12px"><div class="box-text">${n.rep_summary}</div></div>
+      <div class="two-col">
+        <div class="box box-strength"><div class="box-label">Top Strength</div><div class="box-text">${n.top_strength||''}</div></div>
+        <div class="box box-focus"><div class="box-label">Focus Area</div><div class="box-text">${n.focus_area||''}</div></div>
+      </div>
+      <div class="section-label">Suggested 1-1 Agenda</div>`;
+      (n.agenda||[]).forEach((item,i) => {
+        html += `<div class="agenda-item"><span class="agenda-num">${i+1}</span><span>${item}</span></div>`;
+      });
+      html += `<div class="two-col" style="margin-top:14px">
+        <div class="box box-target"><div class="box-label">Short-term target — next week</div><div class="box-text">${n.short_term_target||''}</div></div>
+        <div class="box box-target"><div class="box-label">Longer-term goal — next month</div><div class="box-text">${n.long_term_goal||''}</div></div>
+      </div>`;
       if (n.prospect_insight) {
-        html += `<h3>Market Insight from Calls</h3><div class="blue-box">${n.prospect_insight}</div>`;
+        html += `<div class="section-label">Market Intelligence</div>
+        <div class="box box-summary"><div class="box-text">${n.prospect_insight}</div></div>`;
       }
     }
 
-    html += `<hr class="rule">`;
+    html += `</div>
+    <div class="report-footer">
+      <div class="fl">Quality Care Group &nbsp;·&nbsp; ${s.rep} &nbsp;·&nbsp; ${periodLabel}</div>
+      <div class="fl">Confidential — manager use only</div>
+    </div></div>`;
   });
 
-  html += `<div style="font-size:9pt;color:#94A3B8;margin-top:16px">Generated by QCG Call Intelligence | ${new Date().toLocaleDateString('en-GB')} | Confidential — manager use only</div>`;
-  html += `</body></html>`;
+  html += `</div></body></html>`;
   return html;
 }
 
-// ── MAIN GENERATE ─────────────────────────────────────────────────────────
 async function generate() {
-  const openaiKey = document.getElementById('openaiKey').value.trim();
-  const sheetsUrl = document.getElementById('sheetsUrl').value.trim();
+  const openaiKey = localStorage.getItem(KEY_STORE)||'';
+  const sheetsUrl = localStorage.getItem(SHEETS_STORE)||'';
   const repFilter = document.getElementById('repSelect').value;
   const period    = document.getElementById('periodSelect').value;
-
   let dateFrom, dateTo;
-  if (period === 'week') {
-    const today = new Date();
-    const week  = new Date(today); week.setDate(today.getDate()-7);
-    dateTo   = today.toISOString().split('T')[0];
-    dateFrom = week.toISOString().split('T')[0];
+  if (period==='week') {
+    const today=new Date(), week=new Date(today); week.setDate(today.getDate()-7);
+    dateTo=today.toISOString().split('T')[0]; dateFrom=week.toISOString().split('T')[0];
   } else {
-    dateFrom = document.getElementById('dateFrom').value;
-    dateTo   = document.getElementById('dateTo').value;
+    dateFrom=document.getElementById('dateFrom').value;
+    dateTo=document.getElementById('dateTo').value;
   }
+  if (!openaiKey) { showStatus('Please enter your OpenAI API key','error'); return; }
+  if (!dateFrom||!dateTo) { showStatus('Please select a date range','error'); return; }
+  // Keys already saved via settings panel
 
-  if (!openaiKey) { showStatus('Please enter your OpenAI API key', 'error'); return; }
-  if (!sheetsUrl) { showStatus('Please enter your Google Sheets Script URL', 'error'); return; }
-  if (!dateFrom || !dateTo) { showStatus('Please select a date range', 'error'); return; }
-
-  // Save keys
-  localStorage.setItem(KEY_STORE, openaiKey);
-  localStorage.setItem(SHEETS_STORE, sheetsUrl);
-
-  // Extract Sheet ID from URL or use directly
-  let sheetId = '1jJyifPyLgN7iQ4akxX6wdEkr5AjGiC8OYPYIhzgfsk8';
-  const idMatch = sheetsUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  // sheetsUrl is the Apps Script URL not Sheet URL, so use hardcoded Sheet ID
-  // In future this could be a separate settings field
-
-  document.getElementById('generateBtn').disabled = true;
-  document.getElementById('generateSpinner').style.display = 'block';
-  document.getElementById('generateLabel').textContent = 'Generating...';
+  document.getElementById('generateBtn').disabled=true;
+  document.getElementById('generateSpinner').style.display='block';
+  document.getElementById('generateLabel').textContent='Generating...';
   hideStatus();
 
-  const repsToProcess = repFilter ? [repFilter] : REPS;
-  const steps = [
-    'Reading Scores from Sheet',
-    'Reading Flags from Sheet',
-    'Reading Verbatim moments from Sheet',
-    'Reading Narratives from Sheet',
-    ...repsToProcess.map(r => 'Generating coaching narrative for ' + r.split(' ')[0]),
-    'Building Word document',
-  ];
+  const repsToProcess = repFilter?[repFilter]:REPS;
+  const steps=['Reading Scores','Reading Flags','Reading Verbatim','Reading Narratives',
+    ...repsToProcess.map(r=>'Coaching narrative — '+r.split(' ')[0]),'Building report'];
   buildProgress(steps);
 
   try {
-    // Step 0: Scores
     stepRunning(0);
-    const scoresRaw = await fetchTabCSV(sheetId, 'Scores');
-    const scoreHeaders = scoresRaw[0];
-    const scoreObjs    = rowsToObjects(scoresRaw);
-    const filteredScores = filterByDate(filterByRep(scoreObjs, scoreHeaders, repFilter), scoreHeaders, dateFrom, dateTo);
+    const scoreRows = rowsToObjects(await fetchTabCSV('Scores'));
+    const filteredScores = filterRows(scoreRows, dateFrom, dateTo, repFilter);
     stepDone(0);
-
-    // Step 1: Flags
     stepRunning(1);
-    const flagsRaw  = await fetchTabCSV(sheetId, 'Flags');
-    const flagObjs  = rowsToObjects(flagsRaw);
-    const flagHeaders = flagsRaw[0];
-    const filteredFlags = filterByDate(filterByRep(flagObjs, flagHeaders, repFilter), flagHeaders, dateFrom, dateTo);
+    const flagRows = filterRows(rowsToObjects(await fetchTabCSV('Flags')), dateFrom, dateTo, repFilter);
     stepDone(1);
-
-    // Step 2: Verbatim
     stepRunning(2);
-    const verbRaw   = await fetchTabCSV(sheetId, 'Verbatim');
-    const verbObjs  = rowsToObjects(verbRaw);
-    const verbHeaders = verbRaw[0];
-    const filteredVerb = filterByDate(filterByRep(verbObjs, verbHeaders, repFilter), verbHeaders, dateFrom, dateTo);
+    const verbRows = filterRows(rowsToObjects(await fetchTabCSV('Verbatim')), dateFrom, dateTo, repFilter);
     stepDone(2);
-
-    // Step 3: Narratives
     stepRunning(3);
-    const narrRaw   = await fetchTabCSV(sheetId, 'Narratives');
-    const narrObjs  = rowsToObjects(narrRaw);
-    const narrHeaders = narrRaw[0];
-    const filteredNarr = filterByDate(filterByRep(narrObjs, narrHeaders, repFilter), narrHeaders, dateFrom, dateTo);
+    const narrRows = filterRows(rowsToObjects(await fetchTabCSV('Narratives')), dateFrom, dateTo, repFilter);
     stepDone(3);
 
     if (!filteredScores.length) {
-      showStatus('No calls found for this period. Make sure the Sheet is shared publicly (anyone with link can view).', 'error');
+      showStatus('No calls found for this period. Make sure the Sheet is shared publicly (anyone with link can view).','error');
       return;
     }
 
-    // Build rep summaries
-    const repSummaries = repsToProcess
-      .map(rep => buildRepSummary(rep, filteredScores, filteredFlags, filteredVerb, filteredNarr))
-      .filter(Boolean);
+    const repSummaries = repsToProcess.map(rep=>buildRepSummary(rep,filteredScores,flagRows,verbRows,narrRows)).filter(Boolean);
+    if (!repSummaries.length) { showStatus('No data found for the selected rep(s) in this date range.','error'); return; }
 
-    if (!repSummaries.length) {
-      showStatus('No data found for the selected rep(s) in this date range.', 'error');
-      return;
-    }
-
-    // Generate GPT narratives per rep
-    const narratives = {};
-    for (let i = 0; i < repsToProcess.length; i++) {
-      const step = 4 + i;
-      const rep  = repsToProcess[i];
-      const summ = repSummaries.find(s => s.rep === rep);
+    const narratives={};
+    for (let i=0;i<repsToProcess.length;i++) {
+      const step=4+i, rep=repsToProcess[i];
+      const summ=repSummaries.find(s=>s.rep===rep);
       if (!summ) { stepDone(step); continue; }
       stepRunning(step);
       narratives[rep] = await generateCoachingNarrative(summ, openaiKey);
       stepDone(step);
     }
 
-    // Build document
-    const docStep = 4 + repsToProcess.length;
+    const docStep=4+repsToProcess.length;
     stepRunning(docStep);
-    const htmlDoc = generateWordHTML(repSummaries, narratives, dateFrom, dateTo, period);
+    const htmlDoc=generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period);
     stepDone(docStep);
 
-    // Download as HTML (opens in Word, prints to PDF)
-    const blob     = new Blob([htmlDoc], { type: 'text/html' });
-    const url      = URL.createObjectURL(blob);
-    const a        = Object.assign(document.createElement('a'), {
-      href: url,
-      download: 'QCG_Coaching_Report_' + dateTo + '.html'
+    const a=Object.assign(document.createElement('a'),{
+      href:URL.createObjectURL(new Blob([htmlDoc],{type:'text/html'})),
+      download:'QCG_Coaching_Report_'+dateTo+'.html'
     });
-    a.click();
-    URL.revokeObjectURL(url);
-
-    showStatus('Report downloaded. Open in Chrome and use Ctrl+P → Save as PDF for a clean document, or open in Word directly.', 'success');
+    a.click(); URL.revokeObjectURL(a.href);
+    showStatus('Report downloaded. Open in Chrome and use Ctrl+P → Save as PDF for a clean document.','success');
 
   } catch(e) {
-    showStatus('Error: ' + e.message, 'error');
+    showStatus('Error: '+e.message,'error');
     console.error(e);
   } finally {
-    document.getElementById('generateBtn').disabled = false;
-    document.getElementById('generateSpinner').style.display = 'none';
-    document.getElementById('generateLabel').textContent = 'Generate coaching report';
+    document.getElementById('generateBtn').disabled=false;
+    document.getElementById('generateSpinner').style.display='none';
+    document.getElementById('generateLabel').textContent='Generate Coaching Report';
   }
 }
 
 function periodChanged() {
-  const custom = document.getElementById('periodSelect').value === 'custom';
-  document.getElementById('customDates').style.display = custom ? 'grid' : 'none';
+  const custom=document.getElementById('periodSelect').value==='custom';
+  document.getElementById('customDates').style.display=custom?'grid':'none';
 }
 </script>
 </body>
