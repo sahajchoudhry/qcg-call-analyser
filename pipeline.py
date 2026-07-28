@@ -485,6 +485,8 @@ def main():
 
     # Authenticate with 8x8
     token = get_8x8_token()
+    token_time = time.time()
+    TOKEN_TTL = 3000  # refresh after 50 minutes (token lasts 3599s)
 
     # Fetch call records
     records = fetch_call_records(token)
@@ -564,6 +566,12 @@ def main():
             log(f"Skipping {call_id} — too short ({duration_secs:.0f}s)")
             skipped += 1
             continue
+
+        # Refresh token if approaching expiry
+        if time.time() - token_time > TOKEN_TTL:
+            log("Refreshing 8x8 auth token...")
+            token = get_8x8_token()
+            token_time = time.time()
 
         log(f"Processing call {call_id} ({duration_secs:.0f}s) ext={ext} ({rep_from_ext})")
 
