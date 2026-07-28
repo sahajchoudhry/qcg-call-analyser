@@ -105,10 +105,7 @@ def get_8x8_auth_headers(token):
 def fetch_call_records(token):
     """
     Fetch call recordings from 8x8 Cloud Storage Service.
-    Object names follow pattern:
-    ipbx_qualitycareinsura_callrecording_users_EXT_TIMESTAMP-CALLID-xEXTu1-_PROSPECT_E.mp3
-    or with colons:
-    ipbx:qualitycareinsura:callrecording:users:EXT:...mp3
+    Tries multiple regions since region discovery may not be reliable for UK accounts.
     """
     now   = datetime.now(timezone.utc)
     start = now - timedelta(days=DAYS_BACK)
@@ -120,56 +117,50 @@ def fetch_call_records(token):
 
     headers = get_8x8_auth_headers(token)
 
-    # Try multiple approaches to find the recordings
-    attempts = [
-        # By object name prefix — tenant specific
-        (f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
-         f"?filter={urllib.parse.quote('objectName=sw=ipbx_qualitycareinsura_callrecording')}"
-         f"&limit=100", "objectName prefix underscore"),
+    # Try every possible region — UK accounts could be in any of these
+    regions = ['uk', 'eu', 'eu-west', 'uk-west', 'uk1', 'eu1', 'us-west', 'us-east']
 
-        (f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
-         f"?filter={urllib.parse.quote('objectName=sw=ipbx:qualitycareinsura:callrecording')}"
-         f"&limit=100", "objectName prefix colon"),
-
-        # By date range with callrecording type
-        (f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
-         f"?filter={urllib.parse.quote(f'type==callrecording;createdTime=ge={start_ms};createdTime=le={end_ms}')}"
-         f"&limit=100", "type callrecording date range"),
-
-        # No filter — get everything and we'll filter client side
-        (f"https://api.8x8.com/storage/{EIGHT_BY_EIGHT_REGION}/v3/objects"
-         f"?limit=50"
-         f"&sortField=createdTime&sortDirection=DESC", "no filter latest 50"),
-    ]
-
-    for url, label in attempts:
+    # First try the configured region with no filter to see if bucket exists
+    for region in regions:
+        url = f"https://api.8x8.com/storage/{region}/v3/objects?limit=5"
         try:
             data    = http_get(url, headers)
             records = data.get('data', data if isinstance(data, list) else [])
-            log(f"Attempt '{label}': found {len(records)} objects")
-            if records:
-                # Log sample
-                sample = records[0]
-                log(f"Sample objectName: {sample.get('objectName','?')[:100]}")
-                log(f"Sample type: {sample.get('type','?')}")
-                log(f"Sample keys: {list(sample.keys())}")
-                # Filter to call recordings by date
-                filtered = [
-                    r for r in records
-                    if ('callrecording' in r.get('objectName','').lower() or
-                        r.get('type') == 'callrecording')
-                    and int(r.get('createdTime', 0)) >= start_ms
-                ]
-                log(f"After date+type filter: {len(filtered)} recordings")
-                if filtered:
-                    return filtered
+            total   = data.get('totalCount', data.get('total', len(records)))
+            log(f"Region '{region}': {len(records)} objects returned, total={total}")
+            if records or (isinstance(data, dict) and 'data' in data):
+                log(f"  Region '{region}' has a bucket! Total objects: {total}")
+                if records:
+                    sample = records[0]
+                    log(f"  Sample type: {sample.get('type','?')}")
+                    log(f"  Sample objectName: {sample.get('objectName','?')[:80]}")
+                # Now query with date filter for callrecording type
+                filter_str = f"type==callrecording;createdTime=ge={start_ms};createdTime=le={end_ms}"
+                url2 = (f"https://api.8x8.com/storage/{region}/v3/objects"
+                        f"?filter={urllib.parse.quote(filter_str)}&limit=100")
+                data2   = http_get(url2, headers)
+                records2 = data2.get('data', data2 if isinstance(data2, list) else [])
+                log(f"  callrecording in date range: {len(records2)}")
+                if records2:
+                    return records2
+                # Try with no type filter just date
+                filter_str3 = f"createdTime=ge={start_ms};createdTime=le={end_ms}"
+                url3 = (f"https://api.8x8.com/storage/{region}/v3/objects"
+                        f"?filter={urllib.parse.quote(filter_str3)}&limit=100")
+                data3   = http_get(url3, headers)
+                records3 = data3.get('data', data3 if isinstance(data3, list) else [])
+                log(f"  Any type in date range: {len(records3)}")
+                if records3:
+                    types = list(set(r.get('type','?') for r in records3))
+                    log(f"  Types found: {types}")
+                    return records3
         except urllib.error.HTTPError as e:
             body = e.read().decode('utf-8')
-            log(f"Attempt '{label}' error {e.code}: {body[:200]}")
+            log(f"Region '{region}': error {e.code} — {body[:100]}")
         except Exception as e:
-            log(f"Attempt '{label}' exception: {str(e)[:100]}")
+            log(f"Region '{region}': exception — {str(e)[:80]}")
 
-    log("No recordings found in Cloud Storage")
+    log("No recordings found in any region")
     return []
 
 
