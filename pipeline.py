@@ -28,15 +28,23 @@ SHEETS_URL            = os.environ.get('SHEETS_URL', '')  # Apps Script /exec UR
 
 # Reps — maps phone extension or user to rep name
 # Add your reps' 8x8 email/extension here once you know them
+# Map extension numbers to rep names — filter BEFORE transcription
+REP_EXTENSIONS = {
+    '235': 'Lucy Sandle',
+    '242': 'Ryan Davenport',
+    '243': 'Sara Bosworth',
+    '212': 'Steve Taylor',
+    '246': 'Cameron Montrose',
+}
+
 REP_MAP = {
-    # Fill in 8x8 user IDs once confirmed — get from pipeline logs (userId field)
+    # 8x8 userIds — fill in from pipeline logs once confirmed
     # 'WDMDY36gQEycqkgxSGNPjA': 'Steve Taylor',
-    # 'BaSct_BLSbedEpCzY5vo_g': 'Lucy Sandle',  # example — confirm from logs
 }
 
 REP_NAMES = ['Steve Taylor','Lucy Sandle','Ryan Davenport','Cameron Montrose','Sara Bosworth']
 
-# Name variants for transcript detection — maps alternate names to canonical name
+# Name variants for transcript detection
 REP_NAME_VARIANTS = {
     'stephen taylor':   'Steve Taylor',
     'steve taylor':     'Steve Taylor',
@@ -177,19 +185,32 @@ def fetch_call_records(token):
         except Exception as e:
             log(f"  No filter error: {e}")
 
-        # Now try with callrecording filter + date
+        # Paginate through ALL callrecording objects in date range
         try:
-            filt = f"type==callrecording;createdTime=ge={start_ms};createdTime=le={end_ms}"
-            url  = f"https://api.8x8.com/storage/{region}/v3/objects?filter={urllib.parse.quote(filt)}&limit=100&pageKey=0"
-            data = http_get(url, headers)
-            recs = parse_response(data)
-            log(f"  callrecording in date range: {len(recs)} records")
-            if recs:
-                for r2 in recs[:3]:
-                    log("  Record: " + json.dumps(r2)[:600])
-                return recs
+            filt      = f"type==callrecording;createdTime=ge={start_ms};createdTime=le={end_ms}"
+            all_recs  = []
+            page_key  = 0
+            page_num  = 0
+            while True:
+                url  = (f"https://api.8x8.com/storage/{region}/v3/objects"
+                        f"?filter={urllib.parse.quote(filt)}"
+                        f"&limit=100&pageKey={page_key}"
+                        f"&sortField=createdTime&sortDirection=DESC")
+                data = http_get(url, headers)
+                recs = parse_response(data)
+                all_recs.extend(recs)
+                page_num += 1
+                last_page = data.get('lastPage', True) if isinstance(data, dict) else True
+                next_key  = data.get('pageKey', page_key) if isinstance(data, dict) else page_key
+                log(f"  Page {page_num}: {len(recs)} records (total so far: {len(all_recs)}, lastPage={last_page})")
+                if last_page or next_key == page_key or not recs:
+                    break
+                page_key = next_key
+            log(f"  Total callrecordings found: {len(all_recs)}")
+            if all_recs:
+                return all_recs
         except Exception as e:
-            log(f"  callrecording filter error: {e}")
+            log(f"  callrecording pagination error: {e}")
 
         # Try callcenterrecording
         try:
@@ -515,22 +536,36 @@ def main():
 
         # Skip if already processed
         if call_id in already_done:
-            log(f"Skipping {call_id} — already processed")
             skipped += 1
             continue
 
-        # Skip calls under 60 seconds (no-answers, very short rejections)
+        # Extract extension from objectName
+        # Format: ipbx:qualitycareinsura:callrecording:users:EXT:...
+        obj_name = record.get('objectName', '')
+        ext = ''
+        parts = obj_name.replace('ipbx.', 'ipbx:').split(':')
+        for i, p in enumerate(parts):
+            if p == 'users' and i + 1 < len(parts):
+                ext = parts[i + 1]
+                break
+
+        # Filter to our 5 reps by extension BEFORE downloading
+        if ext and ext not in REP_EXTENSIONS:
+            log(f"Skipping ext {ext} — not one of our reps")
+            skipped += 1
+            continue
+
+        # Get rep name from extension if available
+        rep_from_ext = REP_EXTENSIONS.get(ext, '')
+
+        # Skip calls under 60 seconds
         duration_secs = duration / 1000 if duration > 1000 else duration
         if duration_secs < 60:
             log(f"Skipping {call_id} — too short ({duration_secs:.0f}s)")
             skipped += 1
             continue
 
-        # Pre-check if this is likely one of our 5 reps using user ID map
-        # (Full rep detection happens after transcription)
-        # For now, process all calls and filter after transcription
-
-        log(f"Processing call {call_id} ({duration_secs:.0f}s) from {user_email}")
+        log(f"Processing call {call_id} ({duration_secs:.0f}s) ext={ext} ({rep_from_ext})")
 
         try:
             # Fetch recording
@@ -553,7 +588,12 @@ def main():
             result = score_call(transcript)
 
             # Match rep
-            rep, rep_confidence = match_rep(result.get('detected_rep',''), user_email)
+            # Use extension-based rep as ground truth if available
+            if rep_from_ext:
+                rep            = rep_from_ext
+                rep_confidence = 'high'
+            else:
+                rep, rep_confidence = match_rep(result.get('detected_rep',''), user_email)
             outcome     = result.get('detected_outcome', '')
             out_conf    = result.get('outcome_confidence', 'low')
 
@@ -585,12 +625,6 @@ def main():
                 'prospect_intelligence': pi,
                 'rep_behaviours':        rb,
             }
-
-            # Skip if not one of our 5 reps
-            if rep not in REP_NAMES:
-                log(f"  Skipping — rep '{rep}' not in team ({', '.join(REP_NAMES)})")
-                skipped += 1
-                continue
 
             # Write to Sheet
             log(f"  Writing to Sheet (rep={rep}, outcome={outcome})...")
