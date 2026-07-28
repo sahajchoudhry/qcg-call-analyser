@@ -169,6 +169,8 @@ def fetch_call_records(token):
             recs = parse_response(data)
             log(f"  callrecording in date range: {len(recs)} records")
             if recs:
+                for r2 in recs[:3]:
+                    log("  Record: " + json.dumps(r2)[:600])
                 return recs
         except Exception as e:
             log(f"  callrecording filter error: {e}")
