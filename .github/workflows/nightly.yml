@@ -2,10 +2,8 @@ name: QCG Nightly Call Processing
 
 on:
   schedule:
-    # 11pm UK time (23:00 BST = 22:00 UTC in summer, 23:00 UTC in winter)
-    # Using 22:00 UTC to cover BST (adjust to 23:00 in winter if needed)
-    - cron: '0 22 * * *'
-  workflow_dispatch:  # Allow manual trigger from GitHub Actions tab
+    - cron: '0 22 * * *'  # 11pm UK time (BST)
+  workflow_dispatch:
 
 jobs:
   process-calls:
@@ -21,11 +19,20 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Restore processed calls cache
+        uses: actions/cache@v4
+        with:
+          path: processed_calls.txt
+          key: processed-calls-${{ github.run_id }}
+          restore-keys: |
+            processed-calls-
+
       - name: Run nightly pipeline
         env:
           EIGHT_BY_EIGHT_KEY:    ${{ secrets.EIGHT_BY_EIGHT_KEY }}
           EIGHT_BY_EIGHT_SECRET: ${{ secrets.EIGHT_BY_EIGHT_SECRET }}
           EIGHT_BY_EIGHT_PBX_ID: ${{ secrets.EIGHT_BY_EIGHT_PBX_ID }}
+          EIGHT_BY_EIGHT_REGION: ${{ secrets.EIGHT_BY_EIGHT_REGION }}
           OPENAI_KEY:            ${{ secrets.OPENAI_KEY }}
           SHEETS_URL:            ${{ secrets.SHEETS_URL }}
         run: python pipeline.py
