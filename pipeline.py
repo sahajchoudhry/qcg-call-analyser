@@ -189,36 +189,93 @@ def fetch_call_records(token):
     return []
 
 
-def fetch_recording(token, call_id):
+def fetch_recording(token, record):
     """
-    Download recording audio from 8x8 Cloud Storage Service.
-    Uses the single object content endpoint.
+    Download a recording using the 8x8 Cloud Storage Bulk Download API.
+    Steps: POST to start bulk download → poll status → GET zip → extract mp3
+    The 'id' field from the listing is the object ID to download.
     """
-    region  = EIGHT_BY_EIGHT_REGION
-    headers = get_8x8_auth_headers(token)
+    import io, zipfile
+    region   = EIGHT_BY_EIGHT_REGION
+    headers  = get_8x8_auth_headers(token)
+    obj_id   = record.get('id', '')
+    obj_name = record.get('objectName', '')
 
-    # Try direct content download endpoints
-    endpoints = [
-        f"https://api.8x8.com/storage/{region}/v3/objects/{call_id}/content",
-        f"https://api.8x8.com/storage/{region}/v3/objects/{call_id}/download",
-    ]
+    if not obj_id:
+        log(f"  No object ID — skipping")
+        return None, None
 
-    for url in endpoints:
-        req = urllib.request.Request(url, headers=headers, method='GET')
+    log(f"  Bulk downloading object {obj_id} ({obj_name[:50]})")
+
+    # Step 1: Start bulk download
+    start_url = f"https://api.8x8.com/storage/{region}/v3/bulk/download/start"
+    try:
+        body = json.dumps([obj_id]).encode('utf-8')
+        req  = urllib.request.Request(start_url, data=body, headers={
+            **headers,
+            'Content-Type': 'application/json',
+        }, method='POST')
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read().decode('utf-8'))
+        zip_name = result.get('zipName')
+        status   = result.get('status')
+        log(f"  Bulk download started: zipName={zip_name}, status={status}")
+        if not zip_name:
+            log(f"  No zipName returned: {result}")
+            return None, None
+    except urllib.error.HTTPError as e:
+        body = e.read().decode('utf-8')[:200]
+        log(f"  Bulk start error {e.code}: {body}")
+        return None, None
+
+    # Step 2: Poll for completion
+    status_url = f"https://api.8x8.com/storage/{region}/v3/bulk/download/status/{zip_name}"
+    for attempt in range(10):
         try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                content_type = resp.headers.get('Content-Type', 'audio/mpeg')
-                data = resp.read()
-                if data:
-                    log(f"  Downloaded {len(data)/1024:.0f}KB via {url.split('/')[-1]}")
-                    return data, content_type
-        except urllib.error.HTTPError as e:
-            body = e.read().decode('utf-8')[:100]
-            log(f"  Download endpoint {url.split('/')[-1]} error {e.code}: {body}")
+            req = urllib.request.Request(status_url, headers=headers, method='GET')
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                result = json.loads(resp.read().decode('utf-8'))
+            status = result.get('status')
+            log(f"  Status check {attempt+1}: {status}")
+            if status == 'DONE':
+                break
+            elif status in ('ERROR', 'FAILED'):
+                log(f"  Bulk download failed: {result}")
+                return None, None
+            time.sleep(3)
         except Exception as e:
-            log(f"  Download endpoint error: {e}")
+            log(f"  Status check error: {e}")
+            time.sleep(3)
+    else:
+        log(f"  Bulk download timed out")
+        return None, None
 
-    return None, None
+    # Step 3: Download the zip
+    dl_url = f"https://api.8x8.com/storage/{region}/v3/bulk/download/{zip_name}"
+    try:
+        req = urllib.request.Request(dl_url, headers=headers, method='GET')
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            zip_bytes = resp.read()
+        log(f"  Downloaded zip: {len(zip_bytes)/1024:.0f}KB")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode('utf-8')[:200]
+        log(f"  Zip download error {e.code}: {body}")
+        return None, None
+
+    # Step 4: Extract mp3 from zip
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(zip_bytes))
+        for name in zf.namelist():
+            if name.endswith('.mp3') or name.endswith('.wav') or name.endswith('.m4a'):
+                audio = zf.read(name)
+                content_type = 'audio/mpeg' if name.endswith('.mp3') else 'audio/wav'
+                log(f"  Extracted {name}: {len(audio)/1024:.0f}KB")
+                return audio, content_type
+        log(f"  No audio file found in zip. Contents: {zf.namelist()}")
+        return None, None
+    except Exception as e:
+        log(f"  Zip extraction error: {e}")
+        return None, None
 
 
 # ── TRANSCRIBE ────────────────────────────────────────────────────────────
@@ -436,7 +493,7 @@ def main():
 
         try:
             # Fetch recording
-            audio, content_type = fetch_recording(token, call_id)
+            audio, content_type = fetch_recording(token, record)
             if not audio:
                 log(f"  No recording available — skipping")
                 skipped += 1
