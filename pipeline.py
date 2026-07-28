@@ -29,16 +29,32 @@ SHEETS_URL            = os.environ.get('SHEETS_URL', '')  # Apps Script /exec UR
 # Reps — maps phone extension or user to rep name
 # Add your reps' 8x8 email/extension here once you know them
 REP_MAP = {
-    # 'steve.taylor@qcaregroup.co.uk':    'Steve Taylor',
-    # 'lucy.sandle@qcaregroup.co.uk':     'Lucy Sandle',
-    # 'ryan.davenport@qcaregroup.co.uk':  'Ryan Davenport',
-    # 'cameron.montrose@qcaregroup.co.uk':'Cameron Montrose',
-    # 'sara.bosworth@qcaregroup.co.uk':   'Sara Bosworth',
+    # Fill in 8x8 user IDs once confirmed — get from pipeline logs (userId field)
+    # 'WDMDY36gQEycqkgxSGNPjA': 'Steve Taylor',
+    # 'BaSct_BLSbedEpCzY5vo_g': 'Lucy Sandle',  # example — confirm from logs
 }
+
 REP_NAMES = ['Steve Taylor','Lucy Sandle','Ryan Davenport','Cameron Montrose','Sara Bosworth']
 
+# Name variants for transcript detection — maps alternate names to canonical name
+REP_NAME_VARIANTS = {
+    'stephen taylor':   'Steve Taylor',
+    'steve taylor':     'Steve Taylor',
+    'stephen':          'Steve Taylor',
+    'lucy sandle':      'Lucy Sandle',
+    'lucy':             'Lucy Sandle',
+    'ryan davenport':   'Ryan Davenport',
+    'ryan':             'Ryan Davenport',
+    'cameron montrose': 'Cameron Montrose',
+    'cameron':          'Cameron Montrose',
+    'sara bosworth':    'Sara Bosworth',
+    'sara':             'Sara Bosworth',
+    'sarah bosworth':   'Sara Bosworth',
+    'sarah':            'Sara Bosworth',
+}
+
 # How many days back to pull recordings
-DAYS_BACK = 2
+DAYS_BACK = 1
 
 # ── UTILITIES ─────────────────────────────────────────────────────────────
 
@@ -372,7 +388,7 @@ def score_call(transcript):
     data = http_post(
         'https://api.openai.com/v1/chat/completions',
         {
-            'model':       'gpt-4o',
+            'model':       'gpt-4o-mini',
             'messages':    [{'role':'user','content':prompt}],
             'temperature': 0.2,
             'max_tokens':  2500,
@@ -407,20 +423,27 @@ def write_to_sheets(payload):
 
 def match_rep(detected, user_email=None):
     """Match detected rep name to known reps."""
-    # Try email map first
+    # Try user ID map first (most reliable)
     if user_email and user_email in REP_MAP:
         return REP_MAP[user_email], 'high'
-    # Try name match
     if not detected:
         return '', 'low'
     dl = detected.lower().strip()
+    # Try exact variant match
+    if dl in REP_NAME_VARIANTS:
+        return REP_NAME_VARIANTS[dl], 'high'
+    # Try partial variant match
+    for variant, canonical in REP_NAME_VARIANTS.items():
+        if variant in dl or dl in variant:
+            return canonical, 'high'
+    # Try against rep names directly
     for name in REP_NAMES:
         parts = name.lower().split(' ')
         if dl == name.lower() or all(p in dl for p in parts):
             return name, 'high'
         if any(p in dl for p in parts if len(p) > 3):
             return name, 'low'
-    return detected, 'low'
+    return '', 'low'
 
 # ── MAIN ──────────────────────────────────────────────────────────────────
 
@@ -453,6 +476,16 @@ def main():
     skipped   = 0
     errors    = 0
 
+    # Load already-processed call IDs to avoid duplicates
+    processed_ids_file = 'processed_calls.txt'
+    try:
+        with open(processed_ids_file, 'r') as f:
+            already_done = set(f.read().splitlines())
+        log(f"Loaded {len(already_done)} previously processed call IDs")
+    except FileNotFoundError:
+        already_done = set()
+        log("No processed calls file yet — starting fresh")
+
     for record in records:
         # Cloud Storage Service object fields
         # objectName format: ipbx:qualitycareinsura:callrecording:users:EXT:TIMESTAMP-CALLID-EXT-NUMBER_E.mp3
@@ -480,7 +513,24 @@ def main():
         # Duration from storedBytes estimate or tags
         duration  = int(tags.get('duration', 0)) if tags.get('duration') else 0
 
-        log(f"Processing call {call_id} ({duration}s) from {user_email}")
+        # Skip if already processed
+        if call_id in already_done:
+            log(f"Skipping {call_id} — already processed")
+            skipped += 1
+            continue
+
+        # Skip calls under 60 seconds (no-answers, very short rejections)
+        duration_secs = duration / 1000 if duration > 1000 else duration
+        if duration_secs < 60:
+            log(f"Skipping {call_id} — too short ({duration_secs:.0f}s)")
+            skipped += 1
+            continue
+
+        # Pre-check if this is likely one of our 5 reps using user ID map
+        # (Full rep detection happens after transcription)
+        # For now, process all calls and filter after transcription
+
+        log(f"Processing call {call_id} ({duration_secs:.0f}s) from {user_email}")
 
         try:
             # Fetch recording
@@ -536,12 +586,22 @@ def main():
                 'rep_behaviours':        rb,
             }
 
+            # Skip if not one of our 5 reps
+            if rep not in REP_NAMES:
+                log(f"  Skipping — rep '{rep}' not in team ({', '.join(REP_NAMES)})")
+                skipped += 1
+                continue
+
             # Write to Sheet
             log(f"  Writing to Sheet (rep={rep}, outcome={outcome})...")
             ok = write_to_sheets(payload)
             if ok:
                 log(f"  ✓ Saved — {rep} | {outcome} | overall={result.get('overall')}")
                 processed += 1
+                # Mark as processed
+                already_done.add(call_id)
+                with open(processed_ids_file, 'a') as f:
+                    f.write(call_id + '\n')
             else:
                 log(f"  Sheet write returned not-ok")
                 errors += 1
