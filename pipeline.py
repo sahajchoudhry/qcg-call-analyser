@@ -105,7 +105,8 @@ def get_8x8_auth_headers(token):
 def fetch_call_records(token):
     """
     Fetch call recordings from 8x8 Cloud Storage Service.
-    Tries multiple regions since region discovery may not be reliable for UK accounts.
+    Response format: {"lastPage":bool,"pageKey":int,"pageSize":int,"content":[...]}
+    NOTE: field is "content" not "data"
     """
     now   = datetime.now(timezone.utc)
     start = now - timedelta(days=DAYS_BACK)
@@ -117,50 +118,74 @@ def fetch_call_records(token):
 
     headers = get_8x8_auth_headers(token)
 
-    # Try every possible region — UK accounts could be in any of these
-    regions = ['uk', 'eu', 'eu-west', 'uk-west', 'uk1', 'eu1', 'us-west', 'us-east']
+    def parse_response(data):
+        """Extract records from response — field is 'content' per 8x8 docs."""
+        if isinstance(data, list):
+            return data
+        # Official format uses 'content'
+        if 'content' in data:
+            return data['content']
+        # Fallback
+        return data.get('data', data.get('items', data.get('recordings', [])))
 
-    # First try the configured region with no filter to see if bucket exists
-    for region in regions:
-        url = f"https://api.8x8.com/storage/{region}/v3/objects?limit=5"
+    # Step 1: Region discovery
+    my_regions = []
+    for discovery_region in ['uk', 'us-east', 'eu']:
         try:
-            data    = http_get(url, headers)
-            records = data.get('data', data if isinstance(data, list) else [])
-            total   = data.get('totalCount', data.get('total', len(records)))
-            log(f"Region '{region}': {len(records)} objects returned, total={total}")
-            if records or (isinstance(data, dict) and 'data' in data):
-                log(f"  Region '{region}' has a bucket! Total objects: {total}")
-                if records:
-                    sample = records[0]
-                    log(f"  Sample type: {sample.get('type','?')}")
-                    log(f"  Sample objectName: {sample.get('objectName','?')[:80]}")
-                # Now query with date filter for callrecording type
-                filter_str = f"type==callrecording;createdTime=ge={start_ms};createdTime=le={end_ms}"
-                url2 = (f"https://api.8x8.com/storage/{region}/v3/objects"
-                        f"?filter={urllib.parse.quote(filter_str)}&limit=100")
-                data2   = http_get(url2, headers)
-                records2 = data2.get('data', data2 if isinstance(data2, list) else [])
-                log(f"  callrecording in date range: {len(records2)}")
-                if records2:
-                    return records2
-                # Try with no type filter just date
-                filter_str3 = f"createdTime=ge={start_ms};createdTime=le={end_ms}"
-                url3 = (f"https://api.8x8.com/storage/{region}/v3/objects"
-                        f"?filter={urllib.parse.quote(filter_str3)}&limit=100")
-                data3   = http_get(url3, headers)
-                records3 = data3.get('data', data3 if isinstance(data3, list) else [])
-                log(f"  Any type in date range: {len(records3)}")
-                if records3:
-                    types = list(set(r.get('type','?') for r in records3))
-                    log(f"  Types found: {types}")
-                    return records3
-        except urllib.error.HTTPError as e:
-            body = e.read().decode('utf-8')
-            log(f"Region '{region}': error {e.code} — {body[:100]}")
+            resp = http_get(f"https://api.8x8.com/storage/{discovery_region}/v3/regions", headers)
+            if isinstance(resp, list):
+                my_regions = resp
+                log(f"My regions: {my_regions}")
+                break
         except Exception as e:
-            log(f"Region '{region}': exception — {str(e)[:80]}")
+            log(f"Region discovery via {discovery_region}: {e}")
 
-    log("No recordings found in any region")
+    if not my_regions:
+        my_regions = [EIGHT_BY_EIGHT_REGION, 'uk', 'eu']
+        log(f"Using default regions: {my_regions}")
+
+    # Step 2: Search each region
+    for region in my_regions:
+        log(f"Searching region: {region}")
+
+        # First: check what's in the bucket at all (no filter)
+        try:
+            url  = f"https://api.8x8.com/storage/{region}/v3/objects?limit=5&pageKey=0"
+            data = http_get(url, headers)
+            recs = parse_response(data)
+            page_size = data.get('pageSize', len(recs)) if isinstance(data, dict) else len(recs)
+            log(f"  No filter: pageSize={page_size}, records={len(recs)}, lastPage={data.get('lastPage','?') if isinstance(data,dict) else '?'}")
+            log(f"  Full response keys: {list(data.keys()) if isinstance(data, dict) else 'list'}")
+            if recs:
+                log(f"  Sample record: {json.dumps(recs[0])[:300]}")
+        except Exception as e:
+            log(f"  No filter error: {e}")
+
+        # Now try with callrecording filter + date
+        try:
+            filt = f"type==callrecording;createdTime=ge={start_ms};createdTime=le={end_ms}"
+            url  = f"https://api.8x8.com/storage/{region}/v3/objects?filter={urllib.parse.quote(filt)}&limit=100&pageKey=0"
+            data = http_get(url, headers)
+            recs = parse_response(data)
+            log(f"  callrecording in date range: {len(recs)} records")
+            if recs:
+                return recs
+        except Exception as e:
+            log(f"  callrecording filter error: {e}")
+
+        # Try callcenterrecording
+        try:
+            filt = f"type==callcenterrecording;createdTime=ge={start_ms};createdTime=le={end_ms}"
+            url  = f"https://api.8x8.com/storage/{region}/v3/objects?filter={urllib.parse.quote(filt)}&limit=100&pageKey=0"
+            data = http_get(url, headers)
+            recs = parse_response(data)
+            log(f"  callcenterrecording in date range: {len(recs)} records")
+            if recs:
+                return recs
+        except Exception as e:
+            log(f"  callcenterrecording filter error: {e}")
+
+    log("No recordings found")
     return []
 
 
