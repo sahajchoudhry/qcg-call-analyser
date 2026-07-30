@@ -394,6 +394,14 @@ def score_call(transcript):
         '}',
         '',
         f'REP DETECTION: Reps are: {rep_list}',
+        'OUTCOME DETECTION — be very precise:',
+        'meeting_booked = a specific day AND time was agreed for a follow-up call or meeting. Must be explicit from both parties. E.g. "Monday at 2pm", "Thursday morning", "next Tuesday at 10". If this happened, use meeting_booked even if the call was otherwise weak.',
+        'follow_up_agreed = rep will call back or send info but NO specific date/time was confirmed. E.g. "call me next week", "send some info over", "try me in a few weeks".',
+        'not_interested = prospect clearly declined. E.g. "happy with our current broker", "not interested", "already renewed".',
+        'callback_requested = prospect asked rep to call back at a specific time they named.',
+        'no_answer = nobody answered, voicemail only, or under 30 seconds with no real conversation.',
+        'When choosing between meeting_booked and follow_up_agreed: if a specific time was named and agreed by both, it is meeting_booked. If vague, it is follow_up_agreed.',
+        '',
         'SCORING: Opening(8-10:care specialism+permission+compelling reason|5-7:missed one element|3-4:generic|1-2:fumbled)',
         'Objections(8-10:reframed+kept going|5-7:accepted some deflections|3-4:could not navigate|1-2:capitulated)',
         'Questions(8-10:consultative+business challenges+follow-up|5-7:surface level|3-4:closed only|1-2:just pitched)',
@@ -633,6 +641,15 @@ def main():
                 'prospect_intelligence': pi,
                 'rep_behaviours':        rb,
             }
+
+            # Skip no_answer calls — not worth scoring or logging
+            if outcome == 'no_answer':
+                log(f"  Skipping — no_answer, not logging")
+                skipped += 1
+                already_done.add(call_id)
+                with open(processed_ids_file, 'a') as f:
+                    f.write(call_id + '\n')
+                continue
 
             # Write to Sheet
             log(f"  Writing to Sheet (rep={rep}, outcome={outcome})...")
