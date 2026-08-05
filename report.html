@@ -22,8 +22,6 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Jost',sans-serif;background:var(--grey);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
-
-/* ── HEADER ── */
 .header{background:var(--dark);padding:0 36px;height:64px;display:flex;align-items:center;gap:16px;}
 .header-logo{display:flex;align-items:center;gap:12px;}
 .logo-mark{width:36px;height:36px;}
@@ -34,39 +32,21 @@ body{font-family:'Jost',sans-serif;background:var(--grey);color:var(--text);min-
 .header-right{margin-left:auto;}
 .nav-btn{font-family:'Jost',sans-serif;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:6px 14px;cursor:pointer;text-decoration:none;transition:all .15s;letter-spacing:.04em;text-transform:uppercase;}
 .nav-btn:hover{background:rgba(255,255,255,.12);color:var(--white);}
-
-/* ── HERO STRIP ── */
 .hero{background:var(--purple);padding:32px 36px 28px;}
 .hero h1{font-family:'Jost',sans-serif;font-size:26px;font-weight:700;color:var(--white);margin-bottom:6px;}
 .hero p{font-size:13px;color:rgba(255,255,255,.75);font-weight:300;}
-
-/* ── MAIN ── */
 .main{max-width:820px;margin:0 auto;padding:36px 20px;}
-
-/* ── CARD ── */
 .card{background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px;}
 .card-head{padding:20px 28px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
 .card-icon{width:36px;height:36px;background:var(--purple-xl);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
 .card-title{font-size:14px;font-weight:700;color:var(--dark);letter-spacing:.01em;}
 .card-sub{font-size:12px;color:var(--muted);margin-top:1px;font-weight:400;}
 .card-body{padding:24px 28px;}
-
-/* ── FORM ── */
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
 .field label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:block;margin-bottom:5px;}
-.field input,.field select{
-  font-family:'Jost',sans-serif;font-size:13px;color:var(--text);
-  background:var(--grey);border:1.5px solid var(--border);border-radius:5px;
-  padding:9px 12px;width:100%;outline:none;transition:border .15s;
-  appearance:none;
-}
-.field select{
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;
-}
+.field input,.field select{font-family:'Jost',sans-serif;font-size:13px;color:var(--text);background:var(--grey);border:1.5px solid var(--border);border-radius:5px;padding:9px 12px;width:100%;outline:none;transition:border .15s;appearance:none;}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
 .field input:focus,.field select:focus{border-color:var(--purple);background:var(--white);}
-
-/* ── BUTTON ── */
 .btn{font-family:'Jost',sans-serif;font-size:13px;font-weight:700;padding:11px 24px;border-radius:5px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:8px;letter-spacing:.03em;text-transform:uppercase;}
 .btn-primary{background:var(--purple);color:var(--white);}
 .btn-primary:hover{background:#9A4374;}
@@ -74,18 +54,13 @@ body{font-family:'Jost',sans-serif;background:var(--grey);color:var(--text);min-
 .btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text);}
 .btn-outline:hover{border-color:var(--purple);color:var(--purple);}
 .btn-full{width:100%;justify-content:center;padding:13px;}
-
 .spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.3);border-top-color:var(--white);border-radius:50%;animation:spin .7s linear infinite;display:none;}
 @keyframes spin{to{transform:rotate(360deg);}}
-
-/* ── STATUS ── */
 .status-box{padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:16px;display:none;}
 .status-box.show{display:block;}
 .status-box.info{background:var(--purple-xl);border:1px solid var(--purple-l);color:var(--purple);}
 .status-box.error{background:#FEE2E2;border:1px solid #FCA5A5;color:#DC2626;}
 .status-box.success{background:#DCFCE7;border:1px solid #86EFAC;color:#16A34A;}
-
-/* ── PROGRESS ── */
 .progress{margin-bottom:16px;display:none;}
 .progress.show{display:block;}
 .progress-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;}
@@ -98,18 +73,9 @@ body{font-family:'Jost',sans-serif;background:var(--grey);color:var(--text);min-
 .step-dot.pending{background:var(--grey);}
 .step-label{color:var(--text);}
 .step-label.muted{color:var(--muted);}
-
-/* ── DIVIDER ── */
 .divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
-
-/* ── FOOTER ── */
 .footer{text-align:center;padding:24px;color:var(--muted);font-size:11px;letter-spacing:.04em;}
-
-@media(max-width:640px){
-  .form-row{grid-template-columns:1fr;}
-  .hero{padding:24px 20px;}
-  .card-body{padding:20px;}
-}
+@media(max-width:640px){.form-row{grid-template-columns:1fr;}.hero{padding:24px 20px;}.card-body{padding:20px;}}
 </style>
 </head>
 <body>
@@ -126,18 +92,15 @@ body{font-family:'Jost',sans-serif;background:var(--grey);color:var(--text);min-
   </div>
   <div class="header-sep"></div>
   <div class="header-sub">Coaching Reports</div>
-  <div class="header-right">
-    <a class="nav-btn" href="index.html">← Call Analyser</a>
-  </div>
+  <div class="header-right"><a class="nav-btn" href="index.html">← Call Analyser</a></div>
 </header>
 
 <div class="hero">
   <h1>Weekly Coaching Report Generator</h1>
-  <p>Turn call data into coaching.</p>
+  <p>Doctrine-based, evidence-referenced coaching — every point traceable to a specific call.</p>
 </div>
 
 <main class="main">
-
   <div class="card" id="settingsCard">
     <div class="card-head">
       <div class="card-icon">⚙</div>
@@ -166,14 +129,8 @@ body{font-family:'Jost',sans-serif;background:var(--grey);color:var(--text);min-
     <div id="settingsFields" style="display:none">
       <div class="card-body">
         <div class="form-row">
-          <div class="field">
-            <label>OpenAI API Key</label>
-            <input type="password" id="openaiKey" placeholder="sk-proj-...">
-          </div>
-          <div class="field">
-            <label>Google Sheets Script URL</label>
-            <input type="text" id="sheetsUrl" placeholder="https://script.google.com/macros/s/...">
-          </div>
+          <div class="field"><label>OpenAI API Key</label><input type="password" id="openaiKey" placeholder="sk-proj-..."></div>
+          <div class="field"><label>Google Sheets Script URL</label><input type="text" id="sheetsUrl" placeholder="https://script.google.com/macros/s/..."></div>
         </div>
         <div style="display:flex;gap:10px;margin-top:4px">
           <button class="btn btn-primary" onclick="saveSettings()" style="font-size:11px;padding:7px 16px">Save Keys</button>
@@ -186,10 +143,7 @@ body{font-family:'Jost',sans-serif;background:var(--grey);color:var(--text);min-
   <div class="card">
     <div class="card-head">
       <div class="card-icon">📋</div>
-      <div>
-        <div class="card-title">Report Parameters</div>
-        <div class="card-sub">Select rep and date range for the coaching report</div>
-      </div>
+      <div><div class="card-title">Report Parameters</div><div class="card-sub">Select rep and date range for the coaching report</div></div>
     </div>
     <div class="card-body">
       <div class="form-row">
@@ -213,31 +167,21 @@ body{font-family:'Jost',sans-serif;background:var(--grey);color:var(--text);min-
         </div>
       </div>
       <div class="form-row" id="customDates" style="display:none">
-        <div class="field">
-          <label>From date</label>
-          <input type="date" id="dateFrom">
-        </div>
-        <div class="field">
-          <label>To date</label>
-          <input type="date" id="dateTo">
-        </div>
+        <div class="field"><label>From date</label><input type="date" id="dateFrom"></div>
+        <div class="field"><label>To date</label><input type="date" id="dateTo"></div>
       </div>
-
       <hr class="divider">
-
       <div id="statusBox" class="status-box"></div>
       <div class="progress" id="progressBox">
         <div class="progress-label">Generating report</div>
         <div class="progress-steps" id="progressSteps"></div>
       </div>
-
       <button class="btn btn-primary btn-full" id="generateBtn" onclick="generate()">
         <span id="generateLabel">Generate Coaching Report</span>
         <div class="spinner" id="generateSpinner"></div>
       </button>
     </div>
   </div>
-
 </main>
 
 <div class="footer">Quality Care Group &nbsp;·&nbsp; hello@qcaregroup.co.uk &nbsp;·&nbsp; www.qcaregroup.co.uk</div>
@@ -248,33 +192,12 @@ const SHEETS_STORE = 'qcg_sheets_url';
 const REPS = ['Steve Taylor','Lucy Sandle','Ryan Davenport','Cameron Montrose','Sara Bosworth'];
 const SHEET_ID = '10MK4SR6xVhfDfcZES1BcVAcu3g1klXy6AzLsEZvLIbE';
 const SETTINGS_PASSWORD = 'JQCG*2026';
-const SETTINGS_UNLOCKED = 'qcg_settings_unlocked';
-
-const BRAND = {
-  purple:   '#AC4B82',
-  purpleL:  '#D19BB9',
-  purpleXL: '#F5EBF1',
-  dark:     '#202331',
-  dark2:    '#2B2E3E',
-  grey:     '#F4F4F4',
-  white:    '#FFFFFF',
-  muted:    '#6B7280',
-  border:   '#E5E7EB',
-  green:    '#16A34A',
-  greenL:   '#DCFCE7',
-  amber:    '#D97706',
-  amberL:   '#FEF3C7',
-  red:      '#DC2626',
-  redL:     '#FEE2E2',
-};
 
 window.onload = function() {
-  // Set default dates
   const today = new Date();
   const week  = new Date(today); week.setDate(today.getDate()-7);
   document.getElementById('dateTo').value   = today.toISOString().split('T')[0];
   document.getElementById('dateFrom').value = week.toISOString().split('T')[0];
-  // Update settings status
   const hasKey = !!localStorage.getItem(KEY_STORE);
   const hasUrl = !!localStorage.getItem(SHEETS_STORE);
   if (hasKey && hasUrl) {
@@ -290,7 +213,6 @@ function toggleSettings() {
   document.getElementById('settingsToggle').textContent = isHidden ? 'Cancel' : 'Unlock Settings';
   if (isHidden) document.getElementById('settingsPassword').focus();
 }
-
 function unlockSettings() {
   const pw = document.getElementById('settingsPassword').value;
   if (pw !== SETTINGS_PASSWORD) {
@@ -302,13 +224,11 @@ function unlockSettings() {
   document.getElementById('settingsBody').style.display = 'none';
   document.getElementById('settingsFields').style.display = 'block';
   document.getElementById('settingsToggle').textContent = 'Lock';
-  // Fill in saved keys
   const key = localStorage.getItem(KEY_STORE)||'';
   const url = localStorage.getItem(SHEETS_STORE)||'';
   if (key) document.getElementById('openaiKey').value = key;
   if (url) document.getElementById('sheetsUrl').value = url;
 }
-
 function saveSettings() {
   const key = document.getElementById('openaiKey').value.trim();
   const url = document.getElementById('sheetsUrl').value.trim();
@@ -318,31 +238,21 @@ function saveSettings() {
   document.getElementById('settingsStatus').textContent = '✓ API keys saved — ready to generate';
   document.getElementById('settingsStatus').style.color = '#16A34A';
 }
-
 function lockSettings() {
   document.getElementById('settingsFields').style.display = 'none';
   document.getElementById('settingsBody').style.display = 'none';
   document.getElementById('settingsToggle').textContent = 'Unlock Settings';
   document.getElementById('settingsPassword').value = '';
 }
-
 function periodChanged() {
   const custom = document.getElementById('periodSelect').value === 'custom';
   document.getElementById('customDates').style.display = custom ? 'grid' : 'none';
 }
-function showStatus(msg, type) {
-  const box = document.getElementById('statusBox');
-  box.textContent = msg; box.className = 'status-box show ' + type;
-}
+function showStatus(msg, type) { const box = document.getElementById('statusBox'); box.textContent = msg; box.className = 'status-box show ' + type; }
 function hideStatus() { document.getElementById('statusBox').className = 'status-box'; }
-
 function buildProgress(steps) {
   const list = document.getElementById('progressSteps');
-  list.innerHTML = steps.map((s,i) =>
-    `<div class="step-item">
-      <div class="step-dot pending" id="sdot-${i}"></div>
-      <div class="step-label muted" id="slabel-${i}">${s}</div>
-    </div>`).join('');
+  list.innerHTML = steps.map((s,i) => `<div class="step-item"><div class="step-dot pending" id="sdot-${i}"></div><div class="step-label muted" id="slabel-${i}">${s}</div></div>`).join('');
   document.getElementById('progressBox').className = 'progress show';
 }
 function stepDone(i)    { document.getElementById('sdot-'+i).className='step-dot done'; document.getElementById('slabel-'+i).className='step-label'; }
@@ -354,7 +264,6 @@ async function fetchTabCSV(tabName) {
   if (!res.ok) throw new Error('Could not read ' + tabName + ' — make sure Sheet is shared publicly');
   return parseCSV(await res.text());
 }
-
 function parseCSV(text) {
   const rows = [];
   text.split('\n').forEach(line => {
@@ -372,27 +281,17 @@ function parseCSV(text) {
   });
   return rows;
 }
-
 function rowsToObjects(rows) {
   if (rows.length < 2) return [];
   const headers = rows[0];
-  return rows.slice(1).map(row => {
-    const obj={};
-    headers.forEach((h,i) => { obj[h] = row[i]||''; });
-    return obj;
-  });
+  return rows.slice(1).map(row => { const obj={}; headers.forEach((h,i) => { obj[h] = row[i]||''; }); return obj; });
 }
-
 function parseSheetDate(str) {
-  // Handle DD/MM/YYYY HH:MM:SS format from Google Sheets
   if (!str) return null;
-  // Try DD/MM/YYYY format first
   const ddmm = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (ddmm) return new Date(parseInt(ddmm[3]), parseInt(ddmm[2])-1, parseInt(ddmm[1]));
-  // Fall back to standard parsing
   return new Date(str);
 }
-
 function filterRows(objs, dateFrom, dateTo, rep) {
   const from=new Date(dateFrom), to=new Date(dateTo); to.setHours(23,59,59);
   return objs.filter(r => {
@@ -400,16 +299,33 @@ function filterRows(objs, dateFrom, dateTo, rep) {
     if (!d || isNaN(d.getTime())) return false;
     const dateOk = d>=from && d<=to;
     const repOk  = !rep || r['Rep']===rep;
-    return dateOk && repOk;
+    // Exclude the Tuesday AM call-drive block entirely — different call
+    // goal, not comparable to consultative BD coaching data.
+    const notCallDrive = r['Call Type'] !== 'call_drive';
+    return dateOk && repOk && notCallDrive;
   });
 }
 
-function buildRepSummary(rep, scores, flags, verbatim, narratives) {
+// Call reference string — this is what lets Josh actually pull the recording
+// instead of being handed a floating quote with no source.
+function callRef(callId, scoresById) {
+  const s = scoresById[callId];
+  if (!s) return callId || 'unknown call';
+  const dateStr = s['Date'] ? s['Date'].split(' ')[0] : 'unknown date';
+  return `${dateStr} · ${s['Filename'] || callId}`;
+}
+
+function buildRepSummary(rep, scores, flags, verbatim, narratives, missed, rapport) {
   const rs = scores.filter(r=>r['Rep']===rep);
   const fl = flags.filter(r=>r['Rep']===rep);
   const vb = verbatim.filter(r=>r['Rep']===rep);
   const nr = narratives.filter(r=>r['Rep']===rep);
+  const mo = missed.filter(r=>r['Rep']===rep);
+  const rp = rapport.filter(r=>r['Rep']===rep);
   if (!rs.length) return null;
+
+  const scoresById = {};
+  rs.forEach(r => { scoresById[r['Call ID']] = r; });
 
   const avg = key => {
     const vals=rs.map(r=>parseFloat(r[key])).filter(v=>!isNaN(v));
@@ -419,70 +335,122 @@ function buildRepSummary(rep, scores, flags, verbatim, narratives) {
   fl.forEach(f=>{ flagCounts[f['Flag']]=(flagCounts[f['Flag']]||0)+1; });
   const outcomeCounts={};
   rs.forEach(r=>{ outcomeCounts[r['Outcome']]=(outcomeCounts[r['Outcome']]||0)+1; });
-  const behAvg = key => {
-    const yes=rs.filter(r=>r[key]==='Yes').length;
-    return rs.length ? Math.round(yes/rs.length*100) : 0;
-  };
+  const behAvg = key => { const yes=rs.filter(r=>r[key]==='Yes').length; return rs.length ? Math.round(yes/rs.length*100) : 0; };
   const overall = parseFloat(avg('Score Overall'));
   const tier = overall<5?'URGENT':overall<6.5?'MONITOR':'ON TRACK';
+
+  // Decision-driver mismatch calls — a core new signal
+  const driverMismatches = rs.filter(r => r['Rep Matched Driver']==='No').map(r => ({
+    callId: r['Call ID'], ref: callRef(r['Call ID'], scoresById),
+    driver: r['Decision Driver'], evidence: r['Decision Driver Evidence'], note: r['Driver Mismatch Note'],
+  }));
+
+  // Follow-ups that were never pinned to a date — explicitly not credited
+  const vagueFollowUps = rs.filter(r => r['Follow-up Specific']==='No' && r['Follow-up Commitment Quote']).map(r => ({
+    callId: r['Call ID'], ref: callRef(r['Call ID'], scoresById),
+    quote: r['Follow-up Commitment Quote'], note: r['Follow-up Note'],
+  }));
+
+  // Broker conflict — where it happened, and where it was a miss
+  const brokerConflictWins = rs.filter(r => r['Broker Conflict Attempted']==='Yes' && r['Broker Conflict Evidence']).map(r => ({
+    ref: callRef(r['Call ID'], scoresById), evidence: r['Broker Conflict Evidence'],
+  }));
+  const brokerConflictMisses = rs.filter(r => r['Broker Conflict Attempted']==='No' && r['Broker Conflict Missed Opportunity']).map(r => ({
+    ref: callRef(r['Call ID'], scoresById), missed: r['Broker Conflict Missed Opportunity'],
+  }));
+
+  // Missed opportunities with call reference attached
+  const missedWithRef = mo.map(m => ({
+    ref: callRef(m['Call ID'], scoresById) || (m['Date']+' · '+m['Filename']),
+    category: m['Category'], quote: m['Quote'], suggested: m['Suggested Response'],
+  }));
+
+  // Rapport — built vs missed, each with call reference
+  const rapportBuilt  = rp.filter(r=>r['Type']==='built').map(r => ({ ref: callRef(r['Call ID'], scoresById), quote: r['Quote'], detail: r['Detail'] }));
+  const rapportMissed = rp.filter(r=>r['Type']==='missed').map(r => ({ ref: callRef(r['Call ID'], scoresById), quote: r['Quote'], detail: r['Detail'] }));
+
+  // What-would-raise-it notes per dimension, with call reference, for the calls that scored lowest
+  const improvementNotes = ['Opening','Qualifying','Objections','Questions','Closing'].map(dim => {
+    const rows = rs.filter(r => r['What Raises '+dim]).sort((a,b) => (parseFloat(a['Score '+dim])||99) - (parseFloat(b['Score '+dim])||99));
+    if (!rows.length) return null;
+    const worst = rows[0];
+    return { dim, score: worst['Score '+dim], ref: callRef(worst['Call ID'], scoresById), note: worst['What Raises '+dim] };
+  }).filter(Boolean);
+
   return {
     rep, tier, calls:rs.length, scores:{
-      overall:avg('Score Overall'), opening:avg('Score Opening'),
+      overall:avg('Score Overall'), opening:avg('Score Opening'), qualifying:avg('Score Qualifying'),
       objections:avg('Score Objections'), questions:avg('Score Questions'), closing:avg('Score Closing'),
     },
     flagCounts, outcomeCounts,
-    closingAttempts: vb.filter(v=>v['Moment Type']==='closing_attempt').slice(0,3),
-    missedQuestions: vb.filter(v=>v['Moment Type']==='missed_question').slice(0,3),
-    strongQuestions: vb.filter(v=>v['Moment Type']==='strong_question').slice(0,2),
+    closingAttempts: vb.filter(v=>v['Moment Type']==='closing_attempt').slice(0,5),
+    missedQuestions: vb.filter(v=>v['Moment Type']==='missed_question').slice(0,5),
+    strongQuestions: vb.filter(v=>v['Moment Type']==='strong_question').slice(0,3),
     recentNarratives: nr.slice(-5).map(n=>n['Narrative']).filter(Boolean),
     brokers: rs.map(r=>r['Current Broker']).filter(v=>v&&v!=='null'&&v!==''),
     challenges: rs.map(r=>r['Biggest Challenge']).filter(v=>v&&v!=='null'&&v!==''),
     claimsCount: rs.filter(r=>r['Claims Mentioned']==='Yes').length,
-    premIncrease: rs.filter(r=>r['Premium Increase']==='Yes').length,
+    premIncrease: rs.filter(r=>r['Premium Increase Mentioned']==='Yes').length,
     behaviours:{
-      careSpecialism:behAvg('Mentioned Care Specialism'),
-      claimsTeam:behAvg('Mentioned Claims Team'),
-      renewalDate:behAvg('Asked Renewal Date'),
-      claimsHistory:behAvg('Asked Claims History'),
-      currentBroker:behAvg('Asked Current Broker'),
-      bizChallenges:behAvg('Asked Business Challenges'),
-      consultative:behAvg('Consultative Approach'),
-      genericPitch:behAvg('Generic Pitch'),
+      careSpecialism:behAvg('Mentioned Care Specialism'), claimsTeam:behAvg('Mentioned Claims Team'),
+      renewalDate:behAvg('Asked Renewal Date'), claimsHistory:behAvg('Asked Claims History'),
+      currentBroker:behAvg('Asked Current Broker'), bizChallenges:behAvg('Asked Business Challenges'),
+      decisionMaker:behAvg('Identified Decision Maker'),
+      consultative:behAvg('Consultative Approach'), genericPitch:behAvg('Generic Pitch'),
     },
     strengths: rs.map(r=>r['Strength']).filter(Boolean).slice(-3),
     focuses:   rs.map(r=>r['Focus']).filter(Boolean).slice(-3),
+    driverMismatches, vagueFollowUps, brokerConflictWins, brokerConflictMisses,
+    missedWithRef, rapportBuilt, rapportMissed, improvementNotes,
   };
 }
 
 async function generateCoachingNarrative(s, openaiKey) {
-  const flagList = Object.entries(s.flagCounts).sort((a,b)=>b[1]-a[1])
-    .map(([f,c])=>`${f}: ${c}/${s.calls}`).join(', ');
+  const flagList = Object.entries(s.flagCounts).sort((a,b)=>b[1]-a[1]).map(([f,c])=>`${f}: ${c}/${s.calls}`).join(', ');
   const behList = Object.entries(s.behaviours).map(([k,v])=>`${k}: ${v}%`).join(', ');
   const prompt = [
-    'You are a sales coach writing a weekly coaching report for Josh, manager at Quality Care Group (QCG Insurance) — a specialist care sector insurance broker.',
-    'QCG differentiators: care-only specialism, in-house claims team, mock CQC inspections, bespoke cover including medical malpractice and abuse cover.',
-    `Write a coaching report for ${s.rep}. Be specific, honest, grounded in the data. No generic statements.`,
+    'You are a senior sales coach writing a detailed, long-form weekly coaching report for Josh, manager at Quality Care Group (QCG Insurance), a specialist UK care-sector insurance broker.',
+    'QCG doctrine: reps qualify leads on Price/Risk/Client-Mentality, position as "we want to be your broker" (not just a cheaper quote), aim to create genuine jeopardy with the incumbent broker, match their approach to what the buyer actually cares about, and only credit follow-ups with a specific day/time.',
+    `Write a THOROUGH, LONG coaching report for ${s.rep}. Length is not a constraint — be as long as the evidence supports. Every claim you make must be traceable to a specific call reference given in the data below. Do not write generic sales-coaching platitudes; every sentence should reference something this specific rep actually did or didn't do, with the call it happened on.`,
+    'Do NOT centre the report on the numeric scores — they are a secondary trend indicator only. The centre of the report is specific, evidenced behaviour: what was said, on which call, and what a stronger version of that moment would have sounded like.',
     '', 'DATA:',
-    `Calls: ${s.calls} | Tier: ${s.tier}`,
-    `Scores: Overall=${s.scores.overall} Opening=${s.scores.opening} Objections=${s.scores.objections} Questions=${s.scores.questions} Closing=${s.scores.closing}`,
+    `Calls this period: ${s.calls} | Score trend tier: ${s.tier} (informational only, not the headline)`,
+    `Dimension averages (context only): Overall=${s.scores.overall} Opening=${s.scores.opening} Qualifying=${s.scores.qualifying} Objections=${s.scores.objections} Questions=${s.scores.questions} Closing=${s.scores.closing}`,
     `Outcomes: ${JSON.stringify(s.outcomeCounts)}`,
     `Flags: ${flagList}`,
-    `Behaviours: ${behList}`,
-    `Closing attempts: ${s.closingAttempts.map(v=>'"'+v['Quote']+'"').join(' | ')||'none'}`,
-    `Missed questions: ${s.missedQuestions.map(v=>v['Quote']).join(' | ')||'none'}`,
-    `Strong questions: ${s.strongQuestions.map(v=>'"'+v['Quote']+'"').join(' | ')||'none'}`,
-    `Narratives: ${s.recentNarratives.join(' // ')||'none'}`,
-    `Brokers mentioned: ${s.brokers.join(', ')||'none'}`,
-    `Claims mentioned: ${s.claimsCount}/${s.calls} | Premium increase: ${s.premIncrease}/${s.calls}`,
-    `Challenges: ${s.challenges.slice(0,3).join('; ')||'none'}`,
+    `Qualifying/consultative behaviours (% of calls): ${behList}`,
+    `Decision-driver mismatches (rep focused on the wrong thing for this buyer): ${JSON.stringify(s.driverMismatches)}`,
+    `Vague follow-ups (no specific day/time — do not credit these as results): ${JSON.stringify(s.vagueFollowUps)}`,
+    `Broker-conflict wins (created genuine jeopardy with incumbent): ${JSON.stringify(s.brokerConflictWins)}`,
+    `Broker-conflict missed opportunities: ${JSON.stringify(s.brokerConflictMisses)}`,
+    `Missed opportunities across all calls, each with call reference: ${JSON.stringify(s.missedWithRef)}`,
+    `Rapport built, with call reference: ${JSON.stringify(s.rapportBuilt)}`,
+    `Rapport missed, with call reference: ${JSON.stringify(s.rapportMissed)}`,
+    `Lowest-scoring moment per dimension with exact improvement note and call reference: ${JSON.stringify(s.improvementNotes)}`,
+    `Closing attempts (verbatim): ${s.closingAttempts.map(v=>'"'+v['Quote']+'"').join(' | ')||'none'}`,
+    `Recent call narratives: ${s.recentNarratives.join(' // ')||'none'}`,
+    `Brokers mentioned: ${s.brokers.join(', ')||'none'} | Claims mentioned: ${s.claimsCount}/${s.calls} | Premium increase raised: ${s.premIncrease}/${s.calls}`,
+    `Challenges surfaced: ${s.challenges.slice(0,5).join('; ')||'none'}`,
     '', 'Return ONLY valid JSON:',
-    '{"rep_summary":"2-3 frank sentences on performance and key pattern","top_strength":"specific strength with quote evidence","focus_area":"single most important thing to fix with specific evidence","agenda":["4-5 specific 1-1 dialogue prompts as questions not instructions"],"short_term_target":"one measurable target next week","long_term_goal":"one development goal next month","prospect_insight":"one observation about market intelligence from calls"}',
+    '{',
+    '"rep_summary":"4-6 sentences, specific and evidenced, covering the overall pattern across the period — not a generic tone assessment",',
+    '"qualifying_analysis":"2-4 sentences on whether the rep is actually establishing Price/Risk/Mentality per QCG doctrine, with call references, or just running through a script",',
+    '"broker_conflict_analysis":"2-4 sentences on whether the rep is creating genuine jeopardy with incumbent brokers or just quoting, with call references",',
+    '"decision_driver_analysis":"2-4 sentences on whether the rep correctly identifies what matters most to each buyer, with specific mismatch examples and call references if any exist",',
+    '"rapport_analysis":"3-5 sentences specifically on rapport — both what is working and what is being left on the table, with call references",',
+    '"missed_opportunities_summary":"3-6 sentences synthesising the pattern across the missed-opportunity list — not just repeating them, but naming the underlying habit (e.g. always moving past pain points without probing)",',
+    '"top_strength":"specific strength with quote evidence and call reference",',
+    '"focus_area":"the single most important thing to fix, with a specific moment, quote, call reference, and what score/outcome improvement this would realistically produce",',
+    '"agenda":["6-8 specific 1-1 dialogue prompts as questions, each referencing a specific call or pattern, not generic coaching questions"],',
+    '"short_term_target":"one measurable, specific target next week tied to the actual gap identified above",',
+    '"long_term_goal":"one development goal next month",',
+    '"prospect_insight":"one observation about market intelligence gathered from these calls — broker landscape, pricing pressure, CQC patterns"',
+    '}',
   ].join('\n');
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+openaiKey},
-    body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content:prompt}],temperature:0.3,max_tokens:1200}),
+    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+openaiKey},
+    body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content:prompt}],temperature:0.3,max_tokens:3000}),
   });
   if (!res.ok) throw new Error('GPT-4o failed: '+res.status);
   const data=await res.json();
@@ -491,199 +459,218 @@ async function generateCoachingNarrative(s, openaiKey) {
   return JSON.parse(raw.trim());
 }
 
-function scoreColor(s) {
-  const n=parseFloat(s);
-  return n>=7?BRAND.green:n>=5?BRAND.amber:BRAND.red;
-}
-function tierColor(t) {
-  return t==='URGENT'?BRAND.red:t==='MONITOR'?BRAND.amber:BRAND.green;
-}
-function tierBg(t) {
-  return t==='URGENT'?BRAND.redL:t==='MONITOR'?BRAND.amberL:BRAND.greenL;
-}
+function scoreColor(s) { const n=parseFloat(s); return n>=7?'#16A34A':n>=5?'#D97706':'#DC2626'; }
+function tierColor(t) { return t==='URGENT'?'#DC2626':t==='MONITOR'?'#D97706':'#16A34A'; }
+function tierBg(t) { return t==='URGENT'?'#FEE2E2':t==='MONITOR'?'#FEF3C7':'#DCFCE7'; }
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) {
   const periodLabel = period==='week'?'Week ending '+dateTo:dateFrom+' to '+dateTo;
-
-  let html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>QCG Coaching Report — ${periodLabel}</title>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Jost',sans-serif;background:#F4F4F4;color:#202331;font-size:11pt;}
   .page{background:#fff;max-width:900px;margin:0 auto;}
-  /* Cover */
   .cover{background:#202331;padding:48px 52px;display:flex;align-items:center;gap:24px;}
-  .cover-logo{flex-shrink:0;}
   .cover-text h1{font-size:26pt;font-weight:700;color:#fff;line-height:1.15;margin-bottom:8px;}
   .cover-text .sub{font-size:11pt;color:#D19BB9;font-weight:300;}
   .cover-text .period{font-size:10pt;color:rgba(255,255,255,.5);margin-top:4px;letter-spacing:.04em;}
-  /* Purple accent bar */
   .accent-bar{height:5px;background:#AC4B82;}
-  /* Section header */
   .sec-head{background:#AC4B82;padding:14px 52px;display:flex;align-items:center;justify-content:space-between;}
   .sec-head h2{font-size:14pt;font-weight:700;color:#fff;letter-spacing:.02em;}
   .sec-head .tag{font-size:9pt;color:rgba(255,255,255,.7);letter-spacing:.06em;text-transform:uppercase;}
-  /* Content area */
   .content{padding:32px 52px;}
-  /* Team overview table */
   table{width:100%;border-collapse:collapse;margin:12px 0;}
   th{background:#202331;color:#fff;padding:8px 12px;font-size:9pt;font-weight:700;text-align:left;letter-spacing:.04em;text-transform:uppercase;}
   td{padding:8px 12px;font-size:10pt;border-bottom:1px solid #E5E7EB;}
   tr:nth-child(even) td{background:#F4F4F4;}
-  /* Rep section */
   .rep-header{background:#2B2E3E;padding:24px 52px;display:flex;align-items:center;justify-content:space-between;}
   .rep-name{font-size:20pt;font-weight:700;color:#fff;}
   .rep-meta{text-align:right;}
   .rep-meta .calls{font-size:22pt;font-weight:700;color:#AC4B82;line-height:1;}
   .rep-meta .calls-label{font-size:9pt;color:rgba(255,255,255,.5);letter-spacing:.06em;text-transform:uppercase;}
   .tier-badge{display:inline-block;padding:4px 14px;border-radius:3px;font-size:10pt;font-weight:700;margin-top:8px;}
-  /* Score grid */
   .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;}
   .score-card{border:1px solid #E5E7EB;border-radius:5px;padding:14px 16px;}
   .score-card .dim{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6B7280;margin-bottom:6px;}
   .score-card .val{font-size:22pt;font-weight:700;line-height:1;}
-  .score-card .rat{font-size:9pt;color:#6B7280;margin-top:6px;line-height:1.45;}
-  /* Boxes */
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;}
   .box{border-radius:5px;padding:14px 16px;}
   .box .box-label{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
-  .box .box-text{font-size:10pt;line-height:1.5;}
+  .box .box-text{font-size:10pt;line-height:1.55;}
   .box-strength{background:#DCFCE7;}.box-strength .box-label{color:#16A34A;}
   .box-focus{background:#FEF3C7;}.box-focus .box-label{color:#D97706;}
   .box-summary{background:#F5EBF1;}.box-summary .box-label{color:#AC4B82;}
   .box-target{background:#F4F4F4;border:1px solid #E5E7EB;}.box-target .box-label{color:#6B7280;}
-  /* Verbatim */
-  .verbatim{border-left:3px solid #AC4B82;padding:8px 14px;margin:6px 0;background:#F5EBF1;border-radius:0 4px 4px 0;}
+  .verbatim{border-left:3px solid #AC4B82;padding:10px 14px;margin:8px 0;background:#F5EBF1;border-radius:0 4px 4px 0;}
   .verbatim .vtype{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#AC4B82;margin-bottom:3px;}
-  .verbatim .vquote{font-size:10pt;font-style:italic;color:#202331;line-height:1.45;}
-  /* Behaviours */
+  .verbatim .vref{font-size:8pt;color:#6B7280;margin-bottom:4px;font-family:monospace;}
+  .verbatim .vquote{font-size:10pt;font-style:italic;color:#202331;line-height:1.5;}
+  .verbatim .vsuggest{font-size:9.5pt;color:#16A34A;margin-top:6px;line-height:1.5;}
+  .verbatim .vsuggest b{color:#16A34A;}
   .beh-grid{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;}
   .beh-chip{font-size:9pt;padding:3px 10px;border-radius:3px;font-weight:600;}
-  .beh-good{background:#DCFCE7;color:#16A34A;}
-  .beh-warn{background:#FEF3C7;color:#D97706;}
-  .beh-bad{background:#FEE2E2;color:#DC2626;}
-  /* Agenda */
-  .agenda-item{padding:6px 0;font-size:10pt;display:flex;gap:10px;border-bottom:1px solid #E5E7EB;}
+  .beh-good{background:#DCFCE7;color:#16A34A;}.beh-warn{background:#FEF3C7;color:#D97706;}.beh-bad{background:#FEE2E2;color:#DC2626;}
+  .agenda-item{padding:7px 0;font-size:10pt;display:flex;gap:10px;border-bottom:1px solid #E5E7EB;}
   .agenda-item:last-child{border:none;}
   .agenda-num{color:#AC4B82;font-weight:700;flex-shrink:0;}
-  /* Section label */
-  .section-label{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6B7280;margin:18px 0 8px;}
-  /* Page break */
+  .section-label{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6B7280;margin:20px 0 8px;}
   .page-break{page-break-before:always;}
-  /* Footer */
   .report-footer{background:#202331;padding:14px 52px;display:flex;align-items:center;justify-content:space-between;}
   .report-footer .fl{font-size:9pt;color:rgba(255,255,255,.4);}
-  /* Flag badge */
   .flag{font-size:8pt;font-weight:700;padding:2px 8px;border-radius:3px;display:inline-block;margin:2px;font-family:monospace;}
-  .flag-neg{background:#FEE2E2;color:#DC2626;}
-  .flag-pos{background:#DCFCE7;color:#16A34A;}
+  .flag-neg{background:#FEE2E2;color:#DC2626;}.flag-pos{background:#DCFCE7;color:#16A34A;}
   @media print{body{background:#fff;}.page{max-width:100%;}.page-break{page-break-before:always;}}
 </style></head><body><div class="page">`;
 
-  // Cover
-  html += `
-  <div class="cover">
-    <div class="cover-logo">
-      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-        <circle cx="28" cy="28" r="27" stroke="#AC4B82" stroke-width="2"/>
-        <circle cx="28" cy="28" r="19" stroke="#AC4B82" stroke-width="1.5"/>
-        <circle cx="28" cy="28" r="11" stroke="#AC4B82" stroke-width="1.5"/>
-        <line x1="35" y1="35" x2="45" y2="45" stroke="#AC4B82" stroke-width="2.5" stroke-linecap="round"/>
-      </svg>
-    </div>
-    <div class="cover-text">
-      <h1>Weekly Coaching<br>Report</h1>
-      <div class="sub">Quality Care Group &nbsp;·&nbsp; Sales Intelligence</div>
-      <div class="period">${periodLabel} &nbsp;·&nbsp; Manager: Josh &nbsp;·&nbsp; Confidential</div>
-    </div>
-  </div>
-  <div class="accent-bar"></div>`;
+  html += `<div class="cover">
+    <div class="cover-text"><h1>Weekly Coaching<br>Report</h1>
+    <div class="sub">Quality Care Group &nbsp;·&nbsp; Sales Intelligence</div>
+    <div class="period">${periodLabel} &nbsp;·&nbsp; Manager: Josh &nbsp;·&nbsp; Confidential</div></div>
+  </div><div class="accent-bar"></div>`;
 
-  // Team overview
-  html += `
-  <div class="sec-head">
-    <h2>Team Overview</h2>
-    <div class="tag">${repSummaries.length} reps · ${repSummaries.reduce((a,s)=>a+s.calls,0)} calls</div>
-  </div>
-  <div class="content">
-    <table>
-      <tr><th>Rep</th><th>Calls</th><th>Overall</th><th>Opening</th><th>Objections</th><th>Questions</th><th>Closing</th><th>Meetings</th><th>Tier</th></tr>`;
-
+  html += `<div class="sec-head"><h2>Team Overview</h2><div class="tag">${repSummaries.length} reps · ${repSummaries.reduce((a,s)=>a+s.calls,0)} calls</div></div>
+  <div class="content"><table>
+    <tr><th>Rep</th><th>Calls</th><th>Overall</th><th>Qualifying</th><th>Opening</th><th>Objections</th><th>Questions</th><th>Closing</th><th>Meetings</th><th>Tier</th></tr>`;
   repSummaries.forEach(s => {
     const meetings = s.outcomeCounts['Meeting booked']||0;
-    html += `<tr>
-      <td><strong>${s.rep}</strong></td>
-      <td style="text-align:center">${s.calls}</td>
+    html += `<tr><td><strong>${s.rep}</strong></td><td style="text-align:center">${s.calls}</td>
       <td style="text-align:center;font-weight:700;color:${scoreColor(s.scores.overall)}">${s.scores.overall}</td>
+      <td style="text-align:center;color:${scoreColor(s.scores.qualifying)}">${s.scores.qualifying}</td>
       <td style="text-align:center;color:${scoreColor(s.scores.opening)}">${s.scores.opening}</td>
       <td style="text-align:center;color:${scoreColor(s.scores.objections)}">${s.scores.objections}</td>
       <td style="text-align:center;color:${scoreColor(s.scores.questions)}">${s.scores.questions}</td>
       <td style="text-align:center;color:${scoreColor(s.scores.closing)}">${s.scores.closing}</td>
       <td style="text-align:center">${meetings}</td>
-      <td><span style="font-weight:700;color:${tierColor(s.tier)}">${s.tier}</span></td>
-    </tr>`;
+      <td><span style="font-weight:700;color:${tierColor(s.tier)}">${s.tier}</span></td></tr>`;
   });
-  html += `</table></div>`;
+  html += `</table><p style="font-size:9pt;color:#6B7280;margin-top:8px">Scores are a trend indicator only. The detail that drives coaching is in each rep's section below — every point is tied to the specific call it came from so it can be pulled and reviewed directly.</p></div>`;
 
-  // Rep sections
-  repSummaries.forEach((s, si) => {
+  repSummaries.forEach((s) => {
     const n = narratives[s.rep]||{};
-    const negFlags = ['single_close_attempt','no_close_attempt','terminology_error','missed_buying_signal','pain_point_not_leveraged','failed_to_handle_objection','no_permission_to_talk','generic_pitch','renewal_date_not_asked','current_broker_not_asked'];
-    const topFlags = Object.entries(s.flagCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    const topFlags = Object.entries(s.flagCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const negFlagSet = new Set(['single_close_attempt','no_close_attempt','terminology_error','missed_buying_signal','pain_point_not_leveraged','failed_to_handle_objection','no_permission_to_talk','generic_pitch','renewal_date_not_asked','current_broker_not_asked','vague_follow_up']);
 
     html += `<div class="page-break">
-    <div class="rep-header">
-      <div>
-        <div class="rep-name">${s.rep}</div>
-        <div><span class="tier-badge" style="background:${tierBg(s.tier)};color:${tierColor(s.tier)}">${s.tier}</span></div>
-      </div>
-      <div class="rep-meta">
-        <div class="calls">${s.calls}</div>
-        <div class="calls-label">Calls this period</div>
-      </div>
-    </div>
-    <div class="accent-bar"></div>
-    <div class="content">
+    <div class="rep-header"><div><div class="rep-name">${s.rep}</div>
+      <div><span class="tier-badge" style="background:${tierBg(s.tier)};color:${tierColor(s.tier)}">${s.tier}</span></div></div>
+      <div class="rep-meta"><div class="calls">${s.calls}</div><div class="calls-label">Calls this period</div></div>
+    </div><div class="accent-bar"></div><div class="content">`;
 
-      <div class="section-label">Dimension Scores</div>
-      <div class="score-grid">`;
+    // Rep summary narrative — long form
+    if (n.rep_summary) {
+      html += `<div class="section-label">Overall Pattern</div><div class="box box-summary"><div class="box-text">${esc(n.rep_summary)}</div></div>`;
+    }
 
-    [['Opening','opening'],['Objection Handling','objections'],['Questions Asked','questions'],['Closing','closing']].forEach(([label,key]) => {
+    // Dimension scores — kept as secondary context
+    html += `<div class="section-label">Dimension Scores (trend context, not the headline)</div><div class="score-grid">`;
+    [['Opening','opening'],['Qualifying','qualifying'],['Objection Handling','objections'],['Questions Asked','questions'],['Closing','closing']].forEach(([label,key]) => {
       const sc = s.scores[key];
-      html += `<div class="score-card">
-        <div class="dim">${label}</div>
-        <div class="val" style="color:${scoreColor(sc)}">${sc}<span style="font-size:13pt;color:#6B7280">/10</span></div>
-      </div>`;
+      html += `<div class="score-card"><div class="dim">${label}</div><div class="val" style="color:${scoreColor(sc)}">${sc}<span style="font-size:13pt;color:#6B7280">/10</span></div></div>`;
     });
-
     html += `</div>`;
+
+    // What would raise the lowest score per dimension — the actionable delta
+    if (s.improvementNotes.length) {
+      html += `<div class="section-label">Specifically, What Moves These Scores Up</div>`;
+      s.improvementNotes.forEach(imp => {
+        html += `<div class="verbatim"><div class="vtype">${esc(imp.dim)} — currently ${esc(imp.score)}/10</div>
+          <div class="vref">Call: ${esc(imp.ref)}</div>
+          <div class="vquote" style="font-style:normal">${esc(imp.note)}</div></div>`;
+      });
+    }
+
+    // Qualifying analysis (Price / Risk / Mentality doctrine)
+    if (n.qualifying_analysis) {
+      html += `<div class="section-label">Qualifying — Price / Risk / Client Mentality</div><div class="box box-target"><div class="box-text">${esc(n.qualifying_analysis)}</div></div>`;
+    }
+
+    // Decision driver mismatches
+    if (n.decision_driver_analysis) {
+      html += `<div class="section-label">Reading What This Buyer Actually Cares About</div><div class="box box-target"><div class="box-text">${esc(n.decision_driver_analysis)}</div></div>`;
+    }
+    if (s.driverMismatches.length) {
+      s.driverMismatches.forEach(m => {
+        html += `<div class="verbatim"><div class="vtype">Driver mismatch — buyer cared about ${esc(m.driver)}</div>
+          <div class="vref">Call: ${esc(m.ref)}</div>
+          <div class="vquote">"${esc(m.evidence)}"</div>
+          <div class="vsuggest"><b>What happened instead:</b> ${esc(m.note)}</div></div>`;
+      });
+    }
+
+    // Broker conflict — "we want to be your broker" doctrine
+    if (n.broker_conflict_analysis) {
+      html += `<div class="section-label">Creating Jeopardy With The Incumbent Broker</div><div class="box box-target"><div class="box-text">${esc(n.broker_conflict_analysis)}</div></div>`;
+    }
+    if (s.brokerConflictWins.length) {
+      html += `<div style="font-size:9pt;font-weight:700;color:#16A34A;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.06em">Working</div>`;
+      s.brokerConflictWins.forEach(w => {
+        html += `<div class="verbatim"><div class="vref">Call: ${esc(w.ref)}</div><div class="vquote">"${esc(w.evidence)}"</div></div>`;
+      });
+    }
+    if (s.brokerConflictMisses.length) {
+      html += `<div style="font-size:9pt;font-weight:700;color:#D97706;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.06em">Missed</div>`;
+      s.brokerConflictMisses.forEach(w => {
+        html += `<div class="verbatim"><div class="vref">Call: ${esc(w.ref)}</div><div class="vsuggest">${esc(w.missed)}</div></div>`;
+      });
+    }
+
+    // Rapport — built and missed
+    if (n.rapport_analysis) {
+      html += `<div class="section-label">Rapport Building</div><div class="box box-target"><div class="box-text">${esc(n.rapport_analysis)}</div></div>`;
+    }
+    if (s.rapportBuilt.length) {
+      html += `<div style="font-size:9pt;font-weight:700;color:#16A34A;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.06em">Rapport built</div>`;
+      s.rapportBuilt.forEach(r => {
+        html += `<div class="verbatim"><div class="vref">Call: ${esc(r.ref)}</div><div class="vquote">"${esc(r.quote)}"</div><div class="vsuggest">${esc(r.detail)}</div></div>`;
+      });
+    }
+    if (s.rapportMissed.length) {
+      html += `<div style="font-size:9pt;font-weight:700;color:#DC2626;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.06em">Rapport missed</div>`;
+      s.rapportMissed.forEach(r => {
+        html += `<div class="verbatim"><div class="vref">Call: ${esc(r.ref)}</div><div class="vquote">"${esc(r.quote)}"</div><div class="vsuggest">${esc(r.detail)}</div></div>`;
+      });
+    }
+
+    // Missed opportunities — the centrepiece
+    if (n.missed_opportunities_summary) {
+      html += `<div class="section-label">Missed Opportunities — Pattern Summary</div><div class="box box-focus"><div class="box-text">${esc(n.missed_opportunities_summary)}</div></div>`;
+    }
+    if (s.missedWithRef.length) {
+      html += `<div class="section-label">Missed Opportunities — Full Detail</div>`;
+      s.missedWithRef.forEach(m => {
+        html += `<div class="verbatim"><div class="vtype">${esc(m.category||'')}</div>
+          <div class="vref">Call: ${esc(m.ref)}</div>
+          <div class="vquote">"${esc(m.quote)}"</div>
+          <div class="vsuggest"><b>Better line:</b> ${esc(m.suggested)}</div></div>`;
+      });
+    }
+
+    // Vague follow-ups — explicitly not credited
+    if (s.vagueFollowUps.length) {
+      html += `<div class="section-label">Follow-ups Not Credited (No Specific Day/Time)</div>`;
+      s.vagueFollowUps.forEach(v => {
+        html += `<div class="verbatim"><div class="vref">Call: ${esc(v.ref)}</div><div class="vquote">"${esc(v.quote)}"</div>
+          <div class="vsuggest">${esc(v.note)}</div></div>`;
+      });
+    }
 
     // Flags
     if (topFlags.length) {
-      html += `<div class="section-label">Behavioural Flags</div><div style="margin-bottom:12px">`;
-      topFlags.forEach(([f,c]) => {
-        const isNeg = negFlags.includes(f);
-        html += `<span class="flag ${isNeg?'flag-neg':'flag-pos'}">${f} (${c})</span>`;
-      });
+      html += `<div class="section-label">Behavioural Flags This Period</div><div style="margin-bottom:12px">`;
+      topFlags.forEach(([f,c]) => { html += `<span class="flag ${negFlagSet.has(f)?'flag-neg':'flag-pos'}">${f} (${c})</span>`; });
       html += `</div>`;
     }
 
     // Behaviours
-    html += `<div class="section-label">Qualifying Behaviours</div>
-    <div class="beh-grid">`;
-    const behs=[
-      ['Care specialism',s.behaviours.careSpecialism,true],
-      ['Claims team',s.behaviours.claimsTeam,true],
-      ['Renewal date',s.behaviours.renewalDate,true],
-      ['Claims history',s.behaviours.claimsHistory,true],
-      ['Current broker',s.behaviours.currentBroker,true],
-      ['Biz challenges',s.behaviours.bizChallenges,true],
-      ['Consultative',s.behaviours.consultative,true],
-      ['Generic pitch',s.behaviours.genericPitch,false],
-    ];
-    behs.forEach(([label,pct,goodIfHigh]) => {
+    html += `<div class="section-label">Qualifying Behaviours (% of calls)</div><div class="beh-grid">`;
+    [['Care specialism',s.behaviours.careSpecialism,true],['Claims team',s.behaviours.claimsTeam,true],
+     ['Renewal date',s.behaviours.renewalDate,true],['Claims history',s.behaviours.claimsHistory,true],
+     ['Current broker',s.behaviours.currentBroker,true],['Biz challenges',s.behaviours.bizChallenges,true],
+     ['Decision maker ID\'d',s.behaviours.decisionMaker,true],['Consultative',s.behaviours.consultative,true],
+     ['Generic pitch',s.behaviours.genericPitch,false]].forEach(([label,pct,goodIfHigh]) => {
       const good = goodIfHigh ? pct>=70 : pct<=20;
       const warn = goodIfHigh ? pct>=40&&pct<70 : pct>20&&pct<=50;
       const cls  = good?'beh-good':warn?'beh-warn':'beh-bad';
@@ -691,47 +678,34 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
     });
     html += `</div>`;
 
-    // Verbatim
+    // Closing attempts verbatim
     if (s.closingAttempts.length) {
       html += `<div class="section-label">Closing Attempts</div>`;
-      s.closingAttempts.forEach(v => {
-        html += `<div class="verbatim"><div class="vtype">Closing attempt</div><div class="vquote">"${v['Quote']}"</div></div>`;
-      });
-    }
-    if (s.missedQuestions.length) {
-      html += `<div class="section-label">Missed Question Opportunities</div>`;
-      s.missedQuestions.forEach(v => {
-        html += `<div class="verbatim"><div class="vtype">Missed opportunity</div><div class="vquote">${v['Quote']}</div></div>`;
-      });
+      s.closingAttempts.forEach(v => { html += `<div class="verbatim"><div class="vtype">Closing attempt</div><div class="vquote">"${esc(v['Quote'])}"</div></div>`; });
     }
 
-    // GPT narrative
-    if (n.rep_summary) {
-      html += `<div class="section-label">Rep Summary</div>
-      <div class="box box-summary" style="margin-bottom:12px"><div class="box-text">${n.rep_summary}</div></div>
-      <div class="two-col">
-        <div class="box box-strength"><div class="box-label">Top Strength</div><div class="box-text">${n.top_strength||''}</div></div>
-        <div class="box box-focus"><div class="box-label">Focus Area</div><div class="box-text">${n.focus_area||''}</div></div>
-      </div>
-      <div class="section-label">Suggested 1-1 Agenda</div>`;
-      (n.agenda||[]).forEach((item,i) => {
-        html += `<div class="agenda-item"><span class="agenda-num">${i+1}</span><span>${item}</span></div>`;
-      });
-      html += `<div class="two-col" style="margin-top:14px">
-        <div class="box box-target"><div class="box-label">Short-term target — next week</div><div class="box-text">${n.short_term_target||''}</div></div>
-        <div class="box box-target"><div class="box-label">Longer-term goal — next month</div><div class="box-text">${n.long_term_goal||''}</div></div>
-      </div>`;
-      if (n.prospect_insight) {
-        html += `<div class="section-label">Market Intelligence</div>
-        <div class="box box-summary"><div class="box-text">${n.prospect_insight}</div></div>`;
-      }
+    // Strength / Focus
+    html += `<div class="two-col" style="margin-top:14px">
+      <div class="box box-strength"><div class="box-label">Top Strength</div><div class="box-text">${esc(n.top_strength||'')}</div></div>
+      <div class="box box-focus"><div class="box-label">Focus Area</div><div class="box-text">${esc(n.focus_area||'')}</div></div>
+    </div>`;
+
+    // Agenda
+    if ((n.agenda||[]).length) {
+      html += `<div class="section-label">Suggested 1-1 Agenda</div>`;
+      (n.agenda||[]).forEach((item,i) => { html += `<div class="agenda-item"><span class="agenda-num">${i+1}</span><span>${esc(item)}</span></div>`; });
     }
 
-    html += `</div>
-    <div class="report-footer">
-      <div class="fl">Quality Care Group &nbsp;·&nbsp; ${s.rep} &nbsp;·&nbsp; ${periodLabel}</div>
-      <div class="fl">Confidential — manager use only</div>
-    </div></div>`;
+    html += `<div class="two-col" style="margin-top:14px">
+      <div class="box box-target"><div class="box-label">Short-term target — next week</div><div class="box-text">${esc(n.short_term_target||'')}</div></div>
+      <div class="box box-target"><div class="box-label">Longer-term goal — next month</div><div class="box-text">${esc(n.long_term_goal||'')}</div></div>
+    </div>`;
+
+    if (n.prospect_insight) {
+      html += `<div class="section-label">Market Intelligence</div><div class="box box-summary"><div class="box-text">${esc(n.prospect_insight)}</div></div>`;
+    }
+
+    html += `</div><div class="report-footer"><div class="fl">Quality Care Group &nbsp;·&nbsp; ${s.rep} &nbsp;·&nbsp; ${periodLabel}</div><div class="fl">Confidential — manager use only</div></div></div>`;
   });
 
   html += `</div></body></html>`;
@@ -740,7 +714,6 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
 
 async function generate() {
   const openaiKey = localStorage.getItem(KEY_STORE)||'';
-  const sheetsUrl = localStorage.getItem(SHEETS_STORE)||'';
   const repFilter = document.getElementById('repSelect').value;
   const period    = document.getElementById('periodSelect').value;
   let dateFrom, dateTo;
@@ -748,12 +721,10 @@ async function generate() {
     const today=new Date(), week=new Date(today); week.setDate(today.getDate()-7);
     dateTo=today.toISOString().split('T')[0]; dateFrom=week.toISOString().split('T')[0];
   } else {
-    dateFrom=document.getElementById('dateFrom').value;
-    dateTo=document.getElementById('dateTo').value;
+    dateFrom=document.getElementById('dateFrom').value; dateTo=document.getElementById('dateTo').value;
   }
   if (!openaiKey) { showStatus('Please enter your OpenAI API key','error'); return; }
   if (!dateFrom||!dateTo) { showStatus('Please select a date range','error'); return; }
-  // Keys already saved via settings panel
 
   document.getElementById('generateBtn').disabled=true;
   document.getElementById('generateSpinner').style.display='block';
@@ -761,7 +732,7 @@ async function generate() {
   hideStatus();
 
   const repsToProcess = repFilter?[repFilter]:REPS;
-  const steps=['Reading Scores','Reading Flags','Reading Verbatim','Reading Narratives',
+  const steps=['Reading Scores','Reading Flags','Reading Verbatim','Reading Narratives','Reading Missed Opportunities','Reading Rapport',
     ...repsToProcess.map(r=>'Coaching narrative — '+r.split(' ')[0]),'Building report'];
   buildProgress(steps);
 
@@ -779,18 +750,26 @@ async function generate() {
     stepRunning(3);
     const narrRows = filterRows(rowsToObjects(await fetchTabCSV('Narratives')), dateFrom, dateTo, repFilter);
     stepDone(3);
+    stepRunning(4);
+    let missedRows = [];
+    try { missedRows = filterRows(rowsToObjects(await fetchTabCSV('MissedOpportunities')), dateFrom, dateTo, repFilter); } catch(e) { console.warn('MissedOpportunities tab not found yet:', e); }
+    stepDone(4);
+    stepRunning(5);
+    let rapportRows = [];
+    try { rapportRows = filterRows(rowsToObjects(await fetchTabCSV('Rapport')), dateFrom, dateTo, repFilter); } catch(e) { console.warn('Rapport tab not found yet:', e); }
+    stepDone(5);
 
     if (!filteredScores.length) {
-      showStatus('No calls found for this period. Make sure the Sheet is shared publicly (anyone with link can view).','error');
+      showStatus('No calls found for this period (call-drive block calls are excluded by design). Make sure the Sheet is shared publicly.','error');
       return;
     }
 
-    const repSummaries = repsToProcess.map(rep=>buildRepSummary(rep,filteredScores,flagRows,verbRows,narrRows)).filter(Boolean);
+    const repSummaries = repsToProcess.map(rep=>buildRepSummary(rep,filteredScores,flagRows,verbRows,narrRows,missedRows,rapportRows)).filter(Boolean);
     if (!repSummaries.length) { showStatus('No data found for the selected rep(s) in this date range.','error'); return; }
 
     const narratives={};
     for (let i=0;i<repsToProcess.length;i++) {
-      const step=4+i, rep=repsToProcess[i];
+      const step=6+i, rep=repsToProcess[i];
       const summ=repSummaries.find(s=>s.rep===rep);
       if (!summ) { stepDone(step); continue; }
       stepRunning(step);
@@ -798,31 +777,21 @@ async function generate() {
       stepDone(step);
     }
 
-    const docStep=4+repsToProcess.length;
+    const docStep=6+repsToProcess.length;
     stepRunning(docStep);
     const htmlDoc=generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period);
     stepDone(docStep);
 
-    const a=Object.assign(document.createElement('a'),{
-      href:URL.createObjectURL(new Blob([htmlDoc],{type:'text/html'})),
-      download:'QCG_Coaching_Report_'+dateTo+'.html'
-    });
+    const a=Object.assign(document.createElement('a'),{ href:URL.createObjectURL(new Blob([htmlDoc],{type:'text/html'})), download:'QCG_Coaching_Report_'+dateTo+'.html' });
     a.click(); URL.revokeObjectURL(a.href);
     showStatus('Report downloaded. Open in Chrome and use Ctrl+P → Save as PDF for a clean document.','success');
-
   } catch(e) {
-    showStatus('Error: '+e.message,'error');
-    console.error(e);
+    showStatus('Error: '+e.message,'error'); console.error(e);
   } finally {
     document.getElementById('generateBtn').disabled=false;
     document.getElementById('generateSpinner').style.display='none';
     document.getElementById('generateLabel').textContent='Generate Coaching Report';
   }
-}
-
-function periodChanged() {
-  const custom=document.getElementById('periodSelect').value==='custom';
-  document.getElementById('customDates').style.display=custom?'grid':'none';
 }
 </script>
 </body>
