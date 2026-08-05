@@ -1,798 +1,845 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QCG Coaching Report Generator</title>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;600;700&display=swap" rel="stylesheet">
-<style>
-:root {
-  --purple:   #AC4B82;
-  --purple-l: #D19BB9;
-  --purple-xl:#F5EBF1;
-  --dark:     #202331;
-  --dark2:    #2B2E3E;
-  --grey:     #F4F4F4;
-  --white:    #FFFFFF;
-  --text:     #202331;
-  --muted:    #6B7280;
-  --border:   #E5E7EB;
-  --shadow:   0 2px 12px rgba(32,35,49,0.08);
-  --shadow-lg:0 8px 32px rgba(32,35,49,0.14);
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Jost',sans-serif;background:var(--grey);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
-.header{background:var(--dark);padding:0 36px;height:64px;display:flex;align-items:center;gap:16px;}
-.header-logo{display:flex;align-items:center;gap:12px;}
-.logo-mark{width:36px;height:36px;}
-.logo-text{font-family:'Jost',sans-serif;font-size:15px;font-weight:700;color:var(--white);letter-spacing:.02em;line-height:1.2;}
-.logo-text span{display:block;font-weight:300;font-size:11px;color:var(--purple-l);letter-spacing:.08em;text-transform:uppercase;}
-.header-sep{width:1px;height:24px;background:rgba(255,255,255,.15);margin:0 4px;}
-.header-sub{font-size:12px;color:rgba(255,255,255,.45);font-weight:400;letter-spacing:.06em;text-transform:uppercase;}
-.header-right{margin-left:auto;}
-.nav-btn{font-family:'Jost',sans-serif;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:6px 14px;cursor:pointer;text-decoration:none;transition:all .15s;letter-spacing:.04em;text-transform:uppercase;}
-.nav-btn:hover{background:rgba(255,255,255,.12);color:var(--white);}
-.hero{background:var(--purple);padding:32px 36px 28px;}
-.hero h1{font-family:'Jost',sans-serif;font-size:26px;font-weight:700;color:var(--white);margin-bottom:6px;}
-.hero p{font-size:13px;color:rgba(255,255,255,.75);font-weight:300;}
-.main{max-width:820px;margin:0 auto;padding:36px 20px;}
-.card{background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px;}
-.card-head{padding:20px 28px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
-.card-icon{width:36px;height:36px;background:var(--purple-xl);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
-.card-title{font-size:14px;font-weight:700;color:var(--dark);letter-spacing:.01em;}
-.card-sub{font-size:12px;color:var(--muted);margin-top:1px;font-weight:400;}
-.card-body{padding:24px 28px;}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
-.field label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:block;margin-bottom:5px;}
-.field input,.field select{font-family:'Jost',sans-serif;font-size:13px;color:var(--text);background:var(--grey);border:1.5px solid var(--border);border-radius:5px;padding:9px 12px;width:100%;outline:none;transition:border .15s;appearance:none;}
-.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
-.field input:focus,.field select:focus{border-color:var(--purple);background:var(--white);}
-.btn{font-family:'Jost',sans-serif;font-size:13px;font-weight:700;padding:11px 24px;border-radius:5px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:8px;letter-spacing:.03em;text-transform:uppercase;}
-.btn-primary{background:var(--purple);color:var(--white);}
-.btn-primary:hover{background:#9A4374;}
-.btn-primary:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;}
-.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text);}
-.btn-outline:hover{border-color:var(--purple);color:var(--purple);}
-.btn-full{width:100%;justify-content:center;padding:13px;}
-.spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.3);border-top-color:var(--white);border-radius:50%;animation:spin .7s linear infinite;display:none;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.status-box{padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:16px;display:none;}
-.status-box.show{display:block;}
-.status-box.info{background:var(--purple-xl);border:1px solid var(--purple-l);color:var(--purple);}
-.status-box.error{background:#FEE2E2;border:1px solid #FCA5A5;color:#DC2626;}
-.status-box.success{background:#DCFCE7;border:1px solid #86EFAC;color:#16A34A;}
-.progress{margin-bottom:16px;display:none;}
-.progress.show{display:block;}
-.progress-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;}
-.progress-steps{display:flex;flex-direction:column;gap:7px;}
-.step-item{display:flex;align-items:center;gap:10px;font-size:13px;}
-.step-dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
-.step-dot.done{background:var(--purple);border-color:var(--purple);color:var(--white);}
-.step-dot.running{background:var(--purple-xl);border-color:var(--purple);}
-.step-dot.running::after{content:'';width:8px;height:8px;border:1.5px solid var(--purple);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;}
-.step-dot.pending{background:var(--grey);}
-.step-label{color:var(--text);}
-.step-label.muted{color:var(--muted);}
-.divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
-.footer{text-align:center;padding:24px;color:var(--muted);font-size:11px;letter-spacing:.04em;}
-@media(max-width:640px){.form-row{grid-template-columns:1fr;}.hero{padding:24px 20px;}.card-body{padding:20px;}}
-</style>
-</head>
-<body>
+#!/usr/bin/env python3
+"""
+QCG Call Intelligence — Nightly Automation Pipeline
+Runs via GitHub Actions at 11pm every night.
+Pulls recordings from 8x8 Work, processes through Whisper + GPT-4o,
+writes results to Google Sheet via Apps Script.
+"""
 
-<header class="header">
-  <div class="header-logo">
-    <svg class="logo-mark" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="18" cy="18" r="17" stroke="#AC4B82" stroke-width="1.5" fill="none"/>
-      <circle cx="18" cy="18" r="12" stroke="#AC4B82" stroke-width="1.5" fill="none"/>
-      <circle cx="18" cy="18" r="7" stroke="#AC4B82" stroke-width="1.5" fill="none"/>
-      <line x1="23" y1="23" x2="29" y2="29" stroke="#AC4B82" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-    <div class="logo-text">Quality Care Group<span>Call Intelligence</span></div>
-  </div>
-  <div class="header-sep"></div>
-  <div class="header-sub">Coaching Reports</div>
-  <div class="header-right"><a class="nav-btn" href="index.html">← Call Analyser</a></div>
-</header>
+import os
+import json
+import time
+import base64
+import hashlib
+import hmac
+import urllib.request
+import urllib.parse
+import urllib.error
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
-<div class="hero">
-  <h1>Weekly Coaching Report Generator</h1>
-  <p>Doctrine-based, evidence-referenced coaching — every point traceable to a specific call.</p>
-</div>
+LONDON_TZ = ZoneInfo('Europe/London')
 
-<main class="main">
-  <div class="card" id="settingsCard">
-    <div class="card-head">
-      <div class="card-icon">⚙</div>
-      <div>
-        <div class="card-title">Settings</div>
-        <div class="card-sub" id="settingsStatus">Enter password to configure API keys</div>
-      </div>
-      <div style="margin-left:auto">
-        <button class="btn btn-outline" onclick="toggleSettings()" id="settingsToggle" style="font-size:11px;padding:6px 14px">Unlock Settings</button>
-      </div>
-    </div>
-    <div id="settingsBody" style="display:none">
-      <div class="card-body">
-        <div class="form-row" style="margin-bottom:14px">
-          <div class="field">
-            <label>Settings Password</label>
-            <input type="password" id="settingsPassword" placeholder="Enter password..." onkeydown="if(event.key==='Enter')unlockSettings()">
-          </div>
-          <div class="field" style="display:flex;align-items:flex-end">
-            <button class="btn btn-primary" onclick="unlockSettings()" style="width:100%;justify-content:center">Unlock</button>
-          </div>
-        </div>
-        <div id="settingsError" style="color:#DC2626;font-size:12px;margin-top:-8px;margin-bottom:8px;display:none">Incorrect password</div>
-      </div>
-    </div>
-    <div id="settingsFields" style="display:none">
-      <div class="card-body">
-        <div class="form-row">
-          <div class="field"><label>OpenAI API Key</label><input type="password" id="openaiKey" placeholder="sk-proj-..."></div>
-          <div class="field"><label>Google Sheets Script URL</label><input type="text" id="sheetsUrl" placeholder="https://script.google.com/macros/s/..."></div>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:4px">
-          <button class="btn btn-primary" onclick="saveSettings()" style="font-size:11px;padding:7px 16px">Save Keys</button>
-          <button class="btn btn-outline" onclick="lockSettings()" style="font-size:11px;padding:7px 16px">Lock</button>
-        </div>
-      </div>
-    </div>
-  </div>
+def is_call_drive_window(created_iso):
+    """
+    Tuesday 09:00-12:30 UK local time is the team's cold-call drive block —
+    pure volume dialling, not consultative BD calls. Excluded from coaching
+    scoring entirely (different goal for the call = not comparable data),
+    but still counted toward daily call-volume KPI tracking upstream.
+    """
+    if not created_iso:
+        return False
+    try:
+        # 8x8 createdTime is ISO 8601 UTC, e.g. 2026-06-21T13:43:13Z
+        dt_utc = datetime.fromisoformat(created_iso.replace('Z', '+00:00'))
+        dt_ldn = dt_utc.astimezone(LONDON_TZ)
+    except Exception:
+        return False
+    if dt_ldn.weekday() != 1:  # Monday=0, Tuesday=1
+        return False
+    minutes_since_midnight = dt_ldn.hour * 60 + dt_ldn.minute
+    return (9 * 60) <= minutes_since_midnight <= (12 * 60 + 30)
 
-  <div class="card">
-    <div class="card-head">
-      <div class="card-icon">📋</div>
-      <div><div class="card-title">Report Parameters</div><div class="card-sub">Select rep and date range for the coaching report</div></div>
-    </div>
-    <div class="card-body">
-      <div class="form-row">
-        <div class="field">
-          <label>Rep</label>
-          <select id="repSelect">
-            <option value="">All reps — full team report</option>
-            <option value="Steve Taylor">Steve Taylor</option>
-            <option value="Lucy Sandle">Lucy Sandle</option>
-            <option value="Ryan Davenport">Ryan Davenport</option>
-            <option value="Cameron Montrose">Cameron Montrose</option>
-            <option value="Sara Bosworth">Sara Bosworth</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Period</label>
-          <select id="periodSelect" onchange="periodChanged()">
-            <option value="week">Last 7 days</option>
-            <option value="custom">Custom date range</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row" id="customDates" style="display:none">
-        <div class="field"><label>From date</label><input type="date" id="dateFrom"></div>
-        <div class="field"><label>To date</label><input type="date" id="dateTo"></div>
-      </div>
-      <hr class="divider">
-      <div id="statusBox" class="status-box"></div>
-      <div class="progress" id="progressBox">
-        <div class="progress-label">Generating report</div>
-        <div class="progress-steps" id="progressSteps"></div>
-      </div>
-      <button class="btn btn-primary btn-full" id="generateBtn" onclick="generate()">
-        <span id="generateLabel">Generate Coaching Report</span>
-        <div class="spinner" id="generateSpinner"></div>
-      </button>
-    </div>
-  </div>
-</main>
+# ── CONFIG ────────────────────────────────────────────────────────────────
+# These are set as GitHub Secrets — never hardcode them here
 
-<div class="footer">Quality Care Group &nbsp;·&nbsp; hello@qcaregroup.co.uk &nbsp;·&nbsp; www.qcaregroup.co.uk</div>
+EIGHT_BY_EIGHT_KEY    = os.environ.get('EIGHT_BY_EIGHT_KEY', '')
+EIGHT_BY_EIGHT_SECRET = os.environ.get('EIGHT_BY_EIGHT_SECRET', '')
+EIGHT_BY_EIGHT_PBX_ID = os.environ.get('EIGHT_BY_EIGHT_PBX_ID', '')  # fill in when known
+OPENAI_KEY            = os.environ.get('OPENAI_KEY', '')
+SHEETS_URL            = os.environ.get('SHEETS_URL', '')  # Apps Script /exec URL
 
-<script>
-const KEY_STORE    = 'qcg_openai_key';
-const SHEETS_STORE = 'qcg_sheets_url';
-const REPS = ['Steve Taylor','Lucy Sandle','Ryan Davenport','Cameron Montrose','Sara Bosworth'];
-const SHEET_ID = '10MK4SR6xVhfDfcZES1BcVAcu3g1klXy6AzLsEZvLIbE';
-const SETTINGS_PASSWORD = 'JQCG*2026';
-
-window.onload = function() {
-  const today = new Date();
-  const week  = new Date(today); week.setDate(today.getDate()-7);
-  document.getElementById('dateTo').value   = today.toISOString().split('T')[0];
-  document.getElementById('dateFrom').value = week.toISOString().split('T')[0];
-  const hasKey = !!localStorage.getItem(KEY_STORE);
-  const hasUrl = !!localStorage.getItem(SHEETS_STORE);
-  if (hasKey && hasUrl) {
-    document.getElementById('settingsStatus').textContent = '✓ API keys configured — ready to generate';
-    document.getElementById('settingsStatus').style.color = '#16A34A';
-  }
-};
-
-function toggleSettings() {
-  const body = document.getElementById('settingsBody');
-  const isHidden = body.style.display === 'none';
-  body.style.display = isHidden ? 'block' : 'none';
-  document.getElementById('settingsToggle').textContent = isHidden ? 'Cancel' : 'Unlock Settings';
-  if (isHidden) document.getElementById('settingsPassword').focus();
-}
-function unlockSettings() {
-  const pw = document.getElementById('settingsPassword').value;
-  if (pw !== SETTINGS_PASSWORD) {
-    document.getElementById('settingsError').style.display = 'block';
-    document.getElementById('settingsPassword').value = '';
-    return;
-  }
-  document.getElementById('settingsError').style.display = 'none';
-  document.getElementById('settingsBody').style.display = 'none';
-  document.getElementById('settingsFields').style.display = 'block';
-  document.getElementById('settingsToggle').textContent = 'Lock';
-  const key = localStorage.getItem(KEY_STORE)||'';
-  const url = localStorage.getItem(SHEETS_STORE)||'';
-  if (key) document.getElementById('openaiKey').value = key;
-  if (url) document.getElementById('sheetsUrl').value = url;
-}
-function saveSettings() {
-  const key = document.getElementById('openaiKey').value.trim();
-  const url = document.getElementById('sheetsUrl').value.trim();
-  if (key) localStorage.setItem(KEY_STORE, key);
-  if (url) localStorage.setItem(SHEETS_STORE, url);
-  lockSettings();
-  document.getElementById('settingsStatus').textContent = '✓ API keys saved — ready to generate';
-  document.getElementById('settingsStatus').style.color = '#16A34A';
-}
-function lockSettings() {
-  document.getElementById('settingsFields').style.display = 'none';
-  document.getElementById('settingsBody').style.display = 'none';
-  document.getElementById('settingsToggle').textContent = 'Unlock Settings';
-  document.getElementById('settingsPassword').value = '';
-}
-function periodChanged() {
-  const custom = document.getElementById('periodSelect').value === 'custom';
-  document.getElementById('customDates').style.display = custom ? 'grid' : 'none';
-}
-function showStatus(msg, type) { const box = document.getElementById('statusBox'); box.textContent = msg; box.className = 'status-box show ' + type; }
-function hideStatus() { document.getElementById('statusBox').className = 'status-box'; }
-function buildProgress(steps) {
-  const list = document.getElementById('progressSteps');
-  list.innerHTML = steps.map((s,i) => `<div class="step-item"><div class="step-dot pending" id="sdot-${i}"></div><div class="step-label muted" id="slabel-${i}">${s}</div></div>`).join('');
-  document.getElementById('progressBox').className = 'progress show';
-}
-function stepDone(i)    { document.getElementById('sdot-'+i).className='step-dot done'; document.getElementById('slabel-'+i).className='step-label'; }
-function stepRunning(i) { document.getElementById('sdot-'+i).className='step-dot running'; document.getElementById('slabel-'+i).className='step-label'; }
-
-async function fetchTabCSV(tabName) {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Could not read ' + tabName + ' — make sure Sheet is shared publicly');
-  return parseCSV(await res.text());
-}
-function parseCSV(text) {
-  const rows = [];
-  text.split('\n').forEach(line => {
-    if (!line.trim()) return;
-    const row = []; let inQ=false, cell='';
-    for (let i=0;i<line.length;i++) {
-      const c=line[i];
-      if (c==='"'&&!inQ) inQ=true;
-      else if (c==='"'&&inQ&&line[i+1]==='"') { cell+='"'; i++; }
-      else if (c==='"'&&inQ) inQ=false;
-      else if (c===','&&!inQ) { row.push(cell); cell=''; }
-      else cell+=c;
-    }
-    row.push(cell); rows.push(row);
-  });
-  return rows;
-}
-function rowsToObjects(rows) {
-  if (rows.length < 2) return [];
-  const headers = rows[0];
-  return rows.slice(1).map(row => { const obj={}; headers.forEach((h,i) => { obj[h] = row[i]||''; }); return obj; });
-}
-function parseSheetDate(str) {
-  if (!str) return null;
-  const ddmm = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (ddmm) return new Date(parseInt(ddmm[3]), parseInt(ddmm[2])-1, parseInt(ddmm[1]));
-  return new Date(str);
-}
-function filterRows(objs, dateFrom, dateTo, rep) {
-  const from=new Date(dateFrom), to=new Date(dateTo); to.setHours(23,59,59);
-  return objs.filter(r => {
-    const d = parseSheetDate(r['Date']);
-    if (!d || isNaN(d.getTime())) return false;
-    const dateOk = d>=from && d<=to;
-    const repOk  = !rep || r['Rep']===rep;
-    // Exclude the Tuesday AM call-drive block entirely — different call
-    // goal, not comparable to consultative BD coaching data.
-    const notCallDrive = r['Call Type'] !== 'call_drive';
-    return dateOk && repOk && notCallDrive;
-  });
+# Reps — maps phone extension or user to rep name
+# Add your reps' 8x8 email/extension here once you know them
+# Map extension numbers to rep names — filter BEFORE transcription
+REP_EXTENSIONS = {
+    '235': 'Lucy Sandle',
+    '242': 'Ryan Davenport',
+    '243': 'Sara Bosworth',
+    '212': 'Steve Taylor',
+    '246': 'Cameron Montrose',
 }
 
-// Call reference string — this is what lets Josh actually pull the recording
-// instead of being handed a floating quote with no source.
-function callRef(callId, scoresById) {
-  const s = scoresById[callId];
-  if (!s) return callId || 'unknown call';
-  const dateStr = s['Date'] ? s['Date'].split(' ')[0] : 'unknown date';
-  return `${dateStr} · ${s['Filename'] || callId}`;
+REP_MAP = {
+    # 8x8 userIds — fill in from pipeline logs once confirmed
+    # 'WDMDY36gQEycqkgxSGNPjA': 'Steve Taylor',
 }
 
-function buildRepSummary(rep, scores, flags, verbatim, narratives, missed, rapport) {
-  const rs = scores.filter(r=>r['Rep']===rep);
-  const fl = flags.filter(r=>r['Rep']===rep);
-  const vb = verbatim.filter(r=>r['Rep']===rep);
-  const nr = narratives.filter(r=>r['Rep']===rep);
-  const mo = missed.filter(r=>r['Rep']===rep);
-  const rp = rapport.filter(r=>r['Rep']===rep);
-  if (!rs.length) return null;
+REP_NAMES = ['Steve Taylor','Lucy Sandle','Ryan Davenport','Cameron Montrose','Sara Bosworth']
 
-  const scoresById = {};
-  rs.forEach(r => { scoresById[r['Call ID']] = r; });
-
-  const avg = key => {
-    const vals=rs.map(r=>parseFloat(r[key])).filter(v=>!isNaN(v));
-    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : 'N/A';
-  };
-  const flagCounts={};
-  fl.forEach(f=>{ flagCounts[f['Flag']]=(flagCounts[f['Flag']]||0)+1; });
-  const outcomeCounts={};
-  rs.forEach(r=>{ outcomeCounts[r['Outcome']]=(outcomeCounts[r['Outcome']]||0)+1; });
-  const behAvg = key => { const yes=rs.filter(r=>r[key]==='Yes').length; return rs.length ? Math.round(yes/rs.length*100) : 0; };
-  const overall = parseFloat(avg('Score Overall'));
-  const tier = overall<5?'URGENT':overall<6.5?'MONITOR':'ON TRACK';
-
-  // Decision-driver mismatch calls — a core new signal
-  const driverMismatches = rs.filter(r => r['Rep Matched Driver']==='No').map(r => ({
-    callId: r['Call ID'], ref: callRef(r['Call ID'], scoresById),
-    driver: r['Decision Driver'], evidence: r['Decision Driver Evidence'], note: r['Driver Mismatch Note'],
-  }));
-
-  // Follow-ups that were never pinned to a date — explicitly not credited
-  const vagueFollowUps = rs.filter(r => r['Follow-up Specific']==='No' && r['Follow-up Commitment Quote']).map(r => ({
-    callId: r['Call ID'], ref: callRef(r['Call ID'], scoresById),
-    quote: r['Follow-up Commitment Quote'], note: r['Follow-up Note'],
-  }));
-
-  // Broker conflict — where it happened, and where it was a miss
-  const brokerConflictWins = rs.filter(r => r['Broker Conflict Attempted']==='Yes' && r['Broker Conflict Evidence']).map(r => ({
-    ref: callRef(r['Call ID'], scoresById), evidence: r['Broker Conflict Evidence'],
-  }));
-  const brokerConflictMisses = rs.filter(r => r['Broker Conflict Attempted']==='No' && r['Broker Conflict Missed Opportunity']).map(r => ({
-    ref: callRef(r['Call ID'], scoresById), missed: r['Broker Conflict Missed Opportunity'],
-  }));
-
-  // Missed opportunities with call reference attached
-  const missedWithRef = mo.map(m => ({
-    ref: callRef(m['Call ID'], scoresById) || (m['Date']+' · '+m['Filename']),
-    category: m['Category'], quote: m['Quote'], suggested: m['Suggested Response'],
-  }));
-
-  // Rapport — built vs missed, each with call reference
-  const rapportBuilt  = rp.filter(r=>r['Type']==='built').map(r => ({ ref: callRef(r['Call ID'], scoresById), quote: r['Quote'], detail: r['Detail'] }));
-  const rapportMissed = rp.filter(r=>r['Type']==='missed').map(r => ({ ref: callRef(r['Call ID'], scoresById), quote: r['Quote'], detail: r['Detail'] }));
-
-  // What-would-raise-it notes per dimension, with call reference, for the calls that scored lowest
-  const improvementNotes = ['Opening','Qualifying','Objections','Questions','Closing'].map(dim => {
-    const rows = rs.filter(r => r['What Raises '+dim]).sort((a,b) => (parseFloat(a['Score '+dim])||99) - (parseFloat(b['Score '+dim])||99));
-    if (!rows.length) return null;
-    const worst = rows[0];
-    return { dim, score: worst['Score '+dim], ref: callRef(worst['Call ID'], scoresById), note: worst['What Raises '+dim] };
-  }).filter(Boolean);
-
-  return {
-    rep, tier, calls:rs.length, scores:{
-      overall:avg('Score Overall'), opening:avg('Score Opening'), qualifying:avg('Score Qualifying'),
-      objections:avg('Score Objections'), questions:avg('Score Questions'), closing:avg('Score Closing'),
-    },
-    flagCounts, outcomeCounts,
-    closingAttempts: vb.filter(v=>v['Moment Type']==='closing_attempt').slice(0,5),
-    missedQuestions: vb.filter(v=>v['Moment Type']==='missed_question').slice(0,5),
-    strongQuestions: vb.filter(v=>v['Moment Type']==='strong_question').slice(0,3),
-    recentNarratives: nr.slice(-5).map(n=>n['Narrative']).filter(Boolean),
-    brokers: rs.map(r=>r['Current Broker']).filter(v=>v&&v!=='null'&&v!==''),
-    challenges: rs.map(r=>r['Biggest Challenge']).filter(v=>v&&v!=='null'&&v!==''),
-    claimsCount: rs.filter(r=>r['Claims Mentioned']==='Yes').length,
-    premIncrease: rs.filter(r=>r['Premium Increase Mentioned']==='Yes').length,
-    behaviours:{
-      careSpecialism:behAvg('Mentioned Care Specialism'), claimsTeam:behAvg('Mentioned Claims Team'),
-      renewalDate:behAvg('Asked Renewal Date'), claimsHistory:behAvg('Asked Claims History'),
-      currentBroker:behAvg('Asked Current Broker'), bizChallenges:behAvg('Asked Business Challenges'),
-      decisionMaker:behAvg('Identified Decision Maker'),
-      consultative:behAvg('Consultative Approach'), genericPitch:behAvg('Generic Pitch'),
-    },
-    strengths: rs.map(r=>r['Strength']).filter(Boolean).slice(-3),
-    focuses:   rs.map(r=>r['Focus']).filter(Boolean).slice(-3),
-    driverMismatches, vagueFollowUps, brokerConflictWins, brokerConflictMisses,
-    missedWithRef, rapportBuilt, rapportMissed, improvementNotes,
-  };
+# Name variants for transcript detection
+REP_NAME_VARIANTS = {
+    'stephen taylor':   'Steve Taylor',
+    'steve taylor':     'Steve Taylor',
+    'stephen':          'Steve Taylor',
+    'lucy sandle':      'Lucy Sandle',
+    'lucy':             'Lucy Sandle',
+    'ryan davenport':   'Ryan Davenport',
+    'ryan':             'Ryan Davenport',
+    'cameron montrose': 'Cameron Montrose',
+    'cameron':          'Cameron Montrose',
+    'sara bosworth':    'Sara Bosworth',
+    'sara':             'Sara Bosworth',
+    'sarah bosworth':   'Sara Bosworth',
+    'sarah':            'Sara Bosworth',
 }
 
-async function generateCoachingNarrative(s, openaiKey) {
-  const flagList = Object.entries(s.flagCounts).sort((a,b)=>b[1]-a[1]).map(([f,c])=>`${f}: ${c}/${s.calls}`).join(', ');
-  const behList = Object.entries(s.behaviours).map(([k,v])=>`${k}: ${v}%`).join(', ');
-  const prompt = [
-    'You are a senior sales coach writing a detailed, long-form weekly coaching report for Josh, manager at Quality Care Group (QCG Insurance), a specialist UK care-sector insurance broker.',
-    'QCG doctrine: reps qualify leads on Price/Risk/Client-Mentality, position as "we want to be your broker" (not just a cheaper quote), aim to create genuine jeopardy with the incumbent broker, match their approach to what the buyer actually cares about, and only credit follow-ups with a specific day/time.',
-    `Write a THOROUGH, LONG coaching report for ${s.rep}. Length is not a constraint — be as long as the evidence supports. Every claim you make must be traceable to a specific call reference given in the data below. Do not write generic sales-coaching platitudes; every sentence should reference something this specific rep actually did or didn't do, with the call it happened on.`,
-    'Do NOT centre the report on the numeric scores — they are a secondary trend indicator only. The centre of the report is specific, evidenced behaviour: what was said, on which call, and what a stronger version of that moment would have sounded like.',
-    '', 'DATA:',
-    `Calls this period: ${s.calls} | Score trend tier: ${s.tier} (informational only, not the headline)`,
-    `Dimension averages (context only): Overall=${s.scores.overall} Opening=${s.scores.opening} Qualifying=${s.scores.qualifying} Objections=${s.scores.objections} Questions=${s.scores.questions} Closing=${s.scores.closing}`,
-    `Outcomes: ${JSON.stringify(s.outcomeCounts)}`,
-    `Flags: ${flagList}`,
-    `Qualifying/consultative behaviours (% of calls): ${behList}`,
-    `Decision-driver mismatches (rep focused on the wrong thing for this buyer): ${JSON.stringify(s.driverMismatches)}`,
-    `Vague follow-ups (no specific day/time — do not credit these as results): ${JSON.stringify(s.vagueFollowUps)}`,
-    `Broker-conflict wins (created genuine jeopardy with incumbent): ${JSON.stringify(s.brokerConflictWins)}`,
-    `Broker-conflict missed opportunities: ${JSON.stringify(s.brokerConflictMisses)}`,
-    `Missed opportunities across all calls, each with call reference: ${JSON.stringify(s.missedWithRef)}`,
-    `Rapport built, with call reference: ${JSON.stringify(s.rapportBuilt)}`,
-    `Rapport missed, with call reference: ${JSON.stringify(s.rapportMissed)}`,
-    `Lowest-scoring moment per dimension with exact improvement note and call reference: ${JSON.stringify(s.improvementNotes)}`,
-    `Closing attempts (verbatim): ${s.closingAttempts.map(v=>'"'+v['Quote']+'"').join(' | ')||'none'}`,
-    `Recent call narratives: ${s.recentNarratives.join(' // ')||'none'}`,
-    `Brokers mentioned: ${s.brokers.join(', ')||'none'} | Claims mentioned: ${s.claimsCount}/${s.calls} | Premium increase raised: ${s.premIncrease}/${s.calls}`,
-    `Challenges surfaced: ${s.challenges.slice(0,5).join('; ')||'none'}`,
-    '', 'Return ONLY valid JSON:',
-    '{',
-    '"rep_summary":"4-6 sentences, specific and evidenced, covering the overall pattern across the period — not a generic tone assessment",',
-    '"qualifying_analysis":"2-4 sentences on whether the rep is actually establishing Price/Risk/Mentality per QCG doctrine, with call references, or just running through a script",',
-    '"broker_conflict_analysis":"2-4 sentences on whether the rep is creating genuine jeopardy with incumbent brokers or just quoting, with call references",',
-    '"decision_driver_analysis":"2-4 sentences on whether the rep correctly identifies what matters most to each buyer, with specific mismatch examples and call references if any exist",',
-    '"rapport_analysis":"3-5 sentences specifically on rapport — both what is working and what is being left on the table, with call references",',
-    '"missed_opportunities_summary":"3-6 sentences synthesising the pattern across the missed-opportunity list — not just repeating them, but naming the underlying habit (e.g. always moving past pain points without probing)",',
-    '"top_strength":"specific strength with quote evidence and call reference",',
-    '"focus_area":"the single most important thing to fix, with a specific moment, quote, call reference, and what score/outcome improvement this would realistically produce",',
-    '"agenda":["6-8 specific 1-1 dialogue prompts as questions, each referencing a specific call or pattern, not generic coaching questions"],',
-    '"short_term_target":"one measurable, specific target next week tied to the actual gap identified above",',
-    '"long_term_goal":"one development goal next month",',
-    '"prospect_insight":"one observation about market intelligence gathered from these calls — broker landscape, pricing pressure, CQC patterns"',
-    '}',
-  ].join('\n');
+# How many days back to pull recordings
+DAYS_BACK = 1
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+openaiKey},
-    body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content:prompt}],temperature:0.3,max_tokens:3000}),
-  });
-  if (!res.ok) throw new Error('GPT-4o failed: '+res.status);
-  const data=await res.json();
-  let raw=data.choices[0].message.content.trim();
-  if (raw.startsWith('```')) { raw=raw.split('```')[1]; if(raw.startsWith('json')) raw=raw.slice(4); }
-  return JSON.parse(raw.trim());
-}
+# ── UTILITIES ─────────────────────────────────────────────────────────────
 
-function scoreColor(s) { const n=parseFloat(s); return n>=7?'#16A34A':n>=5?'#D97706':'#DC2626'; }
-function tierColor(t) { return t==='URGENT'?'#DC2626':t==='MONITOR'?'#D97706':'#16A34A'; }
-function tierBg(t) { return t==='URGENT'?'#FEE2E2':t==='MONITOR'?'#FEF3C7':'#DCFCE7'; }
-function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+def log(msg):
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
-function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) {
-  const periodLabel = period==='week'?'Week ending '+dateTo:dateFrom+' to '+dateTo;
-  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>QCG Coaching Report — ${periodLabel}</title>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;600;700&display=swap" rel="stylesheet">
-<style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Jost',sans-serif;background:#F4F4F4;color:#202331;font-size:11pt;}
-  .page{background:#fff;max-width:900px;margin:0 auto;}
-  .cover{background:#202331;padding:48px 52px;display:flex;align-items:center;gap:24px;}
-  .cover-text h1{font-size:26pt;font-weight:700;color:#fff;line-height:1.15;margin-bottom:8px;}
-  .cover-text .sub{font-size:11pt;color:#D19BB9;font-weight:300;}
-  .cover-text .period{font-size:10pt;color:rgba(255,255,255,.5);margin-top:4px;letter-spacing:.04em;}
-  .accent-bar{height:5px;background:#AC4B82;}
-  .sec-head{background:#AC4B82;padding:14px 52px;display:flex;align-items:center;justify-content:space-between;}
-  .sec-head h2{font-size:14pt;font-weight:700;color:#fff;letter-spacing:.02em;}
-  .sec-head .tag{font-size:9pt;color:rgba(255,255,255,.7);letter-spacing:.06em;text-transform:uppercase;}
-  .content{padding:32px 52px;}
-  table{width:100%;border-collapse:collapse;margin:12px 0;}
-  th{background:#202331;color:#fff;padding:8px 12px;font-size:9pt;font-weight:700;text-align:left;letter-spacing:.04em;text-transform:uppercase;}
-  td{padding:8px 12px;font-size:10pt;border-bottom:1px solid #E5E7EB;}
-  tr:nth-child(even) td{background:#F4F4F4;}
-  .rep-header{background:#2B2E3E;padding:24px 52px;display:flex;align-items:center;justify-content:space-between;}
-  .rep-name{font-size:20pt;font-weight:700;color:#fff;}
-  .rep-meta{text-align:right;}
-  .rep-meta .calls{font-size:22pt;font-weight:700;color:#AC4B82;line-height:1;}
-  .rep-meta .calls-label{font-size:9pt;color:rgba(255,255,255,.5);letter-spacing:.06em;text-transform:uppercase;}
-  .tier-badge{display:inline-block;padding:4px 14px;border-radius:3px;font-size:10pt;font-weight:700;margin-top:8px;}
-  .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;}
-  .score-card{border:1px solid #E5E7EB;border-radius:5px;padding:14px 16px;}
-  .score-card .dim{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6B7280;margin-bottom:6px;}
-  .score-card .val{font-size:22pt;font-weight:700;line-height:1;}
-  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;}
-  .box{border-radius:5px;padding:14px 16px;}
-  .box .box-label{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
-  .box .box-text{font-size:10pt;line-height:1.55;}
-  .box-strength{background:#DCFCE7;}.box-strength .box-label{color:#16A34A;}
-  .box-focus{background:#FEF3C7;}.box-focus .box-label{color:#D97706;}
-  .box-summary{background:#F5EBF1;}.box-summary .box-label{color:#AC4B82;}
-  .box-target{background:#F4F4F4;border:1px solid #E5E7EB;}.box-target .box-label{color:#6B7280;}
-  .verbatim{border-left:3px solid #AC4B82;padding:10px 14px;margin:8px 0;background:#F5EBF1;border-radius:0 4px 4px 0;}
-  .verbatim .vtype{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#AC4B82;margin-bottom:3px;}
-  .verbatim .vref{font-size:8pt;color:#6B7280;margin-bottom:4px;font-family:monospace;}
-  .verbatim .vquote{font-size:10pt;font-style:italic;color:#202331;line-height:1.5;}
-  .verbatim .vsuggest{font-size:9.5pt;color:#16A34A;margin-top:6px;line-height:1.5;}
-  .verbatim .vsuggest b{color:#16A34A;}
-  .beh-grid{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;}
-  .beh-chip{font-size:9pt;padding:3px 10px;border-radius:3px;font-weight:600;}
-  .beh-good{background:#DCFCE7;color:#16A34A;}.beh-warn{background:#FEF3C7;color:#D97706;}.beh-bad{background:#FEE2E2;color:#DC2626;}
-  .agenda-item{padding:7px 0;font-size:10pt;display:flex;gap:10px;border-bottom:1px solid #E5E7EB;}
-  .agenda-item:last-child{border:none;}
-  .agenda-num{color:#AC4B82;font-weight:700;flex-shrink:0;}
-  .section-label{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6B7280;margin:20px 0 8px;}
-  .page-break{page-break-before:always;}
-  .report-footer{background:#202331;padding:14px 52px;display:flex;align-items:center;justify-content:space-between;}
-  .report-footer .fl{font-size:9pt;color:rgba(255,255,255,.4);}
-  .flag{font-size:8pt;font-weight:700;padding:2px 8px;border-radius:3px;display:inline-block;margin:2px;font-family:monospace;}
-  .flag-neg{background:#FEE2E2;color:#DC2626;}.flag-pos{background:#DCFCE7;color:#16A34A;}
-  @media print{body{background:#fff;}.page{max-width:100%;}.page-break{page-break-before:always;}}
-</style></head><body><div class="page">`;
+def http_get(url, headers=None):
+    req = urllib.request.Request(url, headers=headers or {}, method='GET')
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return json.loads(resp.read().decode('utf-8'))
 
-  html += `<div class="cover">
-    <div class="cover-text"><h1>Weekly Coaching<br>Report</h1>
-    <div class="sub">Quality Care Group &nbsp;·&nbsp; Sales Intelligence</div>
-    <div class="period">${periodLabel} &nbsp;·&nbsp; Manager: Josh &nbsp;·&nbsp; Confidential</div></div>
-  </div><div class="accent-bar"></div>`;
+def http_post(url, data, headers=None):
+    body = json.dumps(data).encode('utf-8')
+    req  = urllib.request.Request(url, data=body, headers=headers or {}, method='POST')
+    req.add_header('Content-Type', 'application/json')
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return json.loads(resp.read().decode('utf-8'))
 
-  html += `<div class="sec-head"><h2>Team Overview</h2><div class="tag">${repSummaries.length} reps · ${repSummaries.reduce((a,s)=>a+s.calls,0)} calls</div></div>
-  <div class="content"><table>
-    <tr><th>Rep</th><th>Calls</th><th>Overall</th><th>Qualifying</th><th>Opening</th><th>Objections</th><th>Questions</th><th>Closing</th><th>Meetings</th><th>Tier</th></tr>`;
-  repSummaries.forEach(s => {
-    const meetings = s.outcomeCounts['Meeting booked']||0;
-    html += `<tr><td><strong>${s.rep}</strong></td><td style="text-align:center">${s.calls}</td>
-      <td style="text-align:center;font-weight:700;color:${scoreColor(s.scores.overall)}">${s.scores.overall}</td>
-      <td style="text-align:center;color:${scoreColor(s.scores.qualifying)}">${s.scores.qualifying}</td>
-      <td style="text-align:center;color:${scoreColor(s.scores.opening)}">${s.scores.opening}</td>
-      <td style="text-align:center;color:${scoreColor(s.scores.objections)}">${s.scores.objections}</td>
-      <td style="text-align:center;color:${scoreColor(s.scores.questions)}">${s.scores.questions}</td>
-      <td style="text-align:center;color:${scoreColor(s.scores.closing)}">${s.scores.closing}</td>
-      <td style="text-align:center">${meetings}</td>
-      <td><span style="font-weight:700;color:${tierColor(s.tier)}">${s.tier}</span></td></tr>`;
-  });
-  html += `</table><p style="font-size:9pt;color:#6B7280;margin-top:8px">Scores are a trend indicator only. The detail that drives coaching is in each rep's section below — every point is tied to the specific call it came from so it can be pulled and reviewed directly.</p></div>`;
+# ── 8x8 AUTHENTICATION ────────────────────────────────────────────────────
 
-  repSummaries.forEach((s) => {
-    const n = narratives[s.rep]||{};
-    const topFlags = Object.entries(s.flagCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    const negFlagSet = new Set(['single_close_attempt','no_close_attempt','terminology_error','missed_buying_signal','pain_point_not_leveraged','failed_to_handle_objection','no_permission_to_talk','generic_pitch','renewal_date_not_asked','current_broker_not_asked','vague_follow_up']);
+# 8x8 Cloud Storage Service region — eu for UK accounts
+EIGHT_BY_EIGHT_REGION = os.environ.get('EIGHT_BY_EIGHT_REGION', 'eu')
 
-    html += `<div class="page-break">
-    <div class="rep-header"><div><div class="rep-name">${s.rep}</div>
-      <div><span class="tier-badge" style="background:${tierBg(s.tier)};color:${tierColor(s.tier)}">${s.tier}</span></div></div>
-      <div class="rep-meta"><div class="calls">${s.calls}</div><div class="calls-label">Calls this period</div></div>
-    </div><div class="accent-bar"></div><div class="content">`;
+def get_8x8_token():
+    """Get OAuth Bearer token for 8x8 Cloud Storage Service API.
+    Uses Basic Auth with Base64-encoded key:secret in Authorization header.
+    """
+    log("Authenticating with 8x8 Cloud Storage Service...")
+    url = 'https://api.8x8.com/oauth/v2/token'
 
-    // Rep summary narrative — long form
-    if (n.rep_summary) {
-      html += `<div class="section-label">Overall Pattern</div><div class="box box-summary"><div class="box-text">${esc(n.rep_summary)}</div></div>`;
+    # Encode key:secret as Base64 for Basic Auth header
+    credentials = base64.b64encode(
+        f"{EIGHT_BY_EIGHT_KEY}:{EIGHT_BY_EIGHT_SECRET}".encode('utf-8')
+    ).decode('utf-8')
+
+    body = urllib.parse.urlencode({'grant_type': 'client_credentials'}).encode('utf-8')
+
+    req = urllib.request.Request(
+        url, data=body,
+        headers={
+            'Content-Type':  'application/x-www-form-urlencoded',
+            'Authorization': f'Basic {credentials}',
+        },
+        method='POST'
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data = json.loads(resp.read().decode('utf-8'))
+
+    token = data.get('access_token')
+    if not token:
+        raise Exception('Failed to get 8x8 OAuth token: ' + str(data))
+    log(f"8x8 authentication successful — products: {data.get('api_product_list', 'unknown')}")
+    return token
+
+def get_8x8_auth_headers(token):
+    """Return headers for 8x8 Cloud Storage Service requests."""
+    return {
+        'Authorization': f'Bearer {token}',
+        'Accept':        'application/json',
     }
 
-    // Dimension scores — kept as secondary context
-    html += `<div class="section-label">Dimension Scores (trend context, not the headline)</div><div class="score-grid">`;
-    [['Opening','opening'],['Qualifying','qualifying'],['Objection Handling','objections'],['Questions Asked','questions'],['Closing','closing']].forEach(([label,key]) => {
-      const sc = s.scores[key];
-      html += `<div class="score-card"><div class="dim">${label}</div><div class="val" style="color:${scoreColor(sc)}">${sc}<span style="font-size:13pt;color:#6B7280">/10</span></div></div>`;
-    });
-    html += `</div>`;
+# ── FETCH CALL RECORDS ────────────────────────────────────────────────────
 
-    // What would raise the lowest score per dimension — the actionable delta
-    if (s.improvementNotes.length) {
-      html += `<div class="section-label">Specifically, What Moves These Scores Up</div>`;
-      s.improvementNotes.forEach(imp => {
-        html += `<div class="verbatim"><div class="vtype">${esc(imp.dim)} — currently ${esc(imp.score)}/10</div>
-          <div class="vref">Call: ${esc(imp.ref)}</div>
-          <div class="vquote" style="font-style:normal">${esc(imp.note)}</div></div>`;
-      });
-    }
+def fetch_call_records(token):
+    """
+    Fetch call recordings from 8x8 Cloud Storage Service.
+    Response format: {"lastPage":bool,"pageKey":int,"pageSize":int,"content":[...]}
+    NOTE: field is "content" not "data"
+    """
+    now   = datetime.now(timezone.utc)
+    start = now - timedelta(days=DAYS_BACK)
 
-    // Qualifying analysis (Price / Risk / Mentality doctrine)
-    if (n.qualifying_analysis) {
-      html += `<div class="section-label">Qualifying — Price / Risk / Client Mentality</div><div class="box box-target"><div class="box-text">${esc(n.qualifying_analysis)}</div></div>`;
-    }
+    start_ms = int(start.timestamp() * 1000)
+    end_ms   = int(now.timestamp() * 1000)
 
-    // Decision driver mismatches
-    if (n.decision_driver_analysis) {
-      html += `<div class="section-label">Reading What This Buyer Actually Cares About</div><div class="box box-target"><div class="box-text">${esc(n.decision_driver_analysis)}</div></div>`;
-    }
-    if (s.driverMismatches.length) {
-      s.driverMismatches.forEach(m => {
-        html += `<div class="verbatim"><div class="vtype">Driver mismatch — buyer cared about ${esc(m.driver)}</div>
-          <div class="vref">Call: ${esc(m.ref)}</div>
-          <div class="vquote">"${esc(m.evidence)}"</div>
-          <div class="vsuggest"><b>What happened instead:</b> ${esc(m.note)}</div></div>`;
-      });
-    }
+    log(f"Fetching recordings from {start.strftime('%Y-%m-%d')} to {now.strftime('%Y-%m-%d')}...")
 
-    // Broker conflict — "we want to be your broker" doctrine
-    if (n.broker_conflict_analysis) {
-      html += `<div class="section-label">Creating Jeopardy With The Incumbent Broker</div><div class="box box-target"><div class="box-text">${esc(n.broker_conflict_analysis)}</div></div>`;
-    }
-    if (s.brokerConflictWins.length) {
-      html += `<div style="font-size:9pt;font-weight:700;color:#16A34A;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.06em">Working</div>`;
-      s.brokerConflictWins.forEach(w => {
-        html += `<div class="verbatim"><div class="vref">Call: ${esc(w.ref)}</div><div class="vquote">"${esc(w.evidence)}"</div></div>`;
-      });
-    }
-    if (s.brokerConflictMisses.length) {
-      html += `<div style="font-size:9pt;font-weight:700;color:#D97706;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.06em">Missed</div>`;
-      s.brokerConflictMisses.forEach(w => {
-        html += `<div class="verbatim"><div class="vref">Call: ${esc(w.ref)}</div><div class="vsuggest">${esc(w.missed)}</div></div>`;
-      });
-    }
+    headers = get_8x8_auth_headers(token)
 
-    // Rapport — built and missed
-    if (n.rapport_analysis) {
-      html += `<div class="section-label">Rapport Building</div><div class="box box-target"><div class="box-text">${esc(n.rapport_analysis)}</div></div>`;
-    }
-    if (s.rapportBuilt.length) {
-      html += `<div style="font-size:9pt;font-weight:700;color:#16A34A;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.06em">Rapport built</div>`;
-      s.rapportBuilt.forEach(r => {
-        html += `<div class="verbatim"><div class="vref">Call: ${esc(r.ref)}</div><div class="vquote">"${esc(r.quote)}"</div><div class="vsuggest">${esc(r.detail)}</div></div>`;
-      });
-    }
-    if (s.rapportMissed.length) {
-      html += `<div style="font-size:9pt;font-weight:700;color:#DC2626;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.06em">Rapport missed</div>`;
-      s.rapportMissed.forEach(r => {
-        html += `<div class="verbatim"><div class="vref">Call: ${esc(r.ref)}</div><div class="vquote">"${esc(r.quote)}"</div><div class="vsuggest">${esc(r.detail)}</div></div>`;
-      });
-    }
+    def parse_response(data):
+        """Extract records from response — field is 'content' per 8x8 docs."""
+        if isinstance(data, list):
+            return data
+        # Official format uses 'content'
+        if 'content' in data:
+            return data['content']
+        # Fallback
+        return data.get('data', data.get('items', data.get('recordings', [])))
 
-    // Missed opportunities — the centrepiece
-    if (n.missed_opportunities_summary) {
-      html += `<div class="section-label">Missed Opportunities — Pattern Summary</div><div class="box box-focus"><div class="box-text">${esc(n.missed_opportunities_summary)}</div></div>`;
-    }
-    if (s.missedWithRef.length) {
-      html += `<div class="section-label">Missed Opportunities — Full Detail</div>`;
-      s.missedWithRef.forEach(m => {
-        html += `<div class="verbatim"><div class="vtype">${esc(m.category||'')}</div>
-          <div class="vref">Call: ${esc(m.ref)}</div>
-          <div class="vquote">"${esc(m.quote)}"</div>
-          <div class="vsuggest"><b>Better line:</b> ${esc(m.suggested)}</div></div>`;
-      });
-    }
+    # Step 1: Region discovery
+    my_regions = []
+    for discovery_region in ['uk', 'us-east', 'eu']:
+        try:
+            resp = http_get(f"https://api.8x8.com/storage/{discovery_region}/v3/regions", headers)
+            if isinstance(resp, list):
+                my_regions = resp
+                log(f"My regions: {my_regions}")
+                break
+        except Exception as e:
+            log(f"Region discovery via {discovery_region}: {e}")
 
-    // Vague follow-ups — explicitly not credited
-    if (s.vagueFollowUps.length) {
-      html += `<div class="section-label">Follow-ups Not Credited (No Specific Day/Time)</div>`;
-      s.vagueFollowUps.forEach(v => {
-        html += `<div class="verbatim"><div class="vref">Call: ${esc(v.ref)}</div><div class="vquote">"${esc(v.quote)}"</div>
-          <div class="vsuggest">${esc(v.note)}</div></div>`;
-      });
-    }
+    if not my_regions:
+        my_regions = [EIGHT_BY_EIGHT_REGION, 'uk', 'eu']
+        log(f"Using default regions: {my_regions}")
 
-    // Flags
-    if (topFlags.length) {
-      html += `<div class="section-label">Behavioural Flags This Period</div><div style="margin-bottom:12px">`;
-      topFlags.forEach(([f,c]) => { html += `<span class="flag ${negFlagSet.has(f)?'flag-neg':'flag-pos'}">${f} (${c})</span>`; });
-      html += `</div>`;
-    }
+    # Step 2: Search each region
+    for region in my_regions:
+        log(f"Searching region: {region}")
 
-    // Behaviours
-    html += `<div class="section-label">Qualifying Behaviours (% of calls)</div><div class="beh-grid">`;
-    [['Care specialism',s.behaviours.careSpecialism,true],['Claims team',s.behaviours.claimsTeam,true],
-     ['Renewal date',s.behaviours.renewalDate,true],['Claims history',s.behaviours.claimsHistory,true],
-     ['Current broker',s.behaviours.currentBroker,true],['Biz challenges',s.behaviours.bizChallenges,true],
-     ['Decision maker ID\'d',s.behaviours.decisionMaker,true],['Consultative',s.behaviours.consultative,true],
-     ['Generic pitch',s.behaviours.genericPitch,false]].forEach(([label,pct,goodIfHigh]) => {
-      const good = goodIfHigh ? pct>=70 : pct<=20;
-      const warn = goodIfHigh ? pct>=40&&pct<70 : pct>20&&pct<=50;
-      const cls  = good?'beh-good':warn?'beh-warn':'beh-bad';
-      html += `<span class="beh-chip ${cls}">${label}: ${pct}%</span>`;
-    });
-    html += `</div>`;
+        # First: check what's in the bucket at all (no filter)
+        try:
+            url  = f"https://api.8x8.com/storage/{region}/v3/objects?limit=5&pageKey=0"
+            data = http_get(url, headers)
+            recs = parse_response(data)
+            page_size = data.get('pageSize', len(recs)) if isinstance(data, dict) else len(recs)
+            log(f"  No filter: pageSize={page_size}, records={len(recs)}, lastPage={data.get('lastPage','?') if isinstance(data,dict) else '?'}")
+            log(f"  Full response keys: {list(data.keys()) if isinstance(data, dict) else 'list'}")
+            if recs:
+                log(f"  Sample record: {json.dumps(recs[0])[:300]}")
+        except Exception as e:
+            log(f"  No filter error: {e}")
 
-    // Closing attempts verbatim
-    if (s.closingAttempts.length) {
-      html += `<div class="section-label">Closing Attempts</div>`;
-      s.closingAttempts.forEach(v => { html += `<div class="verbatim"><div class="vtype">Closing attempt</div><div class="vquote">"${esc(v['Quote'])}"</div></div>`; });
-    }
+        # Paginate through ALL callrecording objects in date range
+        try:
+            filt      = f"type==callrecording;createdTime=ge={start_ms};createdTime=le={end_ms}"
+            all_recs  = []
+            page_key  = 0
+            page_num  = 0
+            while True:
+                url  = (f"https://api.8x8.com/storage/{region}/v3/objects"
+                        f"?filter={urllib.parse.quote(filt)}"
+                        f"&limit=100&pageKey={page_key}"
+                        f"&sortField=createdTime&sortDirection=DESC")
+                data = http_get(url, headers)
+                recs = parse_response(data)
+                all_recs.extend(recs)
+                page_num += 1
+                last_page = data.get('lastPage', True) if isinstance(data, dict) else True
+                next_key  = data.get('pageKey', page_key) if isinstance(data, dict) else page_key
+                log(f"  Page {page_num}: {len(recs)} records (total so far: {len(all_recs)}, lastPage={last_page})")
+                if last_page or next_key == page_key or not recs:
+                    break
+                page_key = next_key
+            log(f"  Total callrecordings found: {len(all_recs)}")
+            if all_recs:
+                return all_recs
+        except Exception as e:
+            log(f"  callrecording pagination error: {e}")
 
-    // Strength / Focus
-    html += `<div class="two-col" style="margin-top:14px">
-      <div class="box box-strength"><div class="box-label">Top Strength</div><div class="box-text">${esc(n.top_strength||'')}</div></div>
-      <div class="box box-focus"><div class="box-label">Focus Area</div><div class="box-text">${esc(n.focus_area||'')}</div></div>
-    </div>`;
+        # Try callcenterrecording
+        try:
+            filt = f"type==callcenterrecording;createdTime=ge={start_ms};createdTime=le={end_ms}"
+            url  = f"https://api.8x8.com/storage/{region}/v3/objects?filter={urllib.parse.quote(filt)}&limit=100&pageKey=0"
+            data = http_get(url, headers)
+            recs = parse_response(data)
+            log(f"  callcenterrecording in date range: {len(recs)} records")
+            if recs:
+                return recs
+        except Exception as e:
+            log(f"  callcenterrecording filter error: {e}")
 
-    // Agenda
-    if ((n.agenda||[]).length) {
-      html += `<div class="section-label">Suggested 1-1 Agenda</div>`;
-      (n.agenda||[]).forEach((item,i) => { html += `<div class="agenda-item"><span class="agenda-num">${i+1}</span><span>${esc(item)}</span></div>`; });
-    }
+    log("No recordings found")
+    return []
 
-    html += `<div class="two-col" style="margin-top:14px">
-      <div class="box box-target"><div class="box-label">Short-term target — next week</div><div class="box-text">${esc(n.short_term_target||'')}</div></div>
-      <div class="box box-target"><div class="box-label">Longer-term goal — next month</div><div class="box-text">${esc(n.long_term_goal||'')}</div></div>
-    </div>`;
 
-    if (n.prospect_insight) {
-      html += `<div class="section-label">Market Intelligence</div><div class="box box-summary"><div class="box-text">${esc(n.prospect_insight)}</div></div>`;
-    }
+def fetch_recording(token, record):
+    """
+    Download a recording from 8x8 Cloud Storage.
+    Each recording has its own bucketId — try multiple download approaches.
+    """
+    import io, zipfile
+    headers  = get_8x8_auth_headers(token)
+    obj_id   = record.get('id', '')
+    obj_name = record.get('objectName', '')
+    bucket_id = record.get('bucketId', '')
 
-    html += `</div><div class="report-footer"><div class="fl">Quality Care Group &nbsp;·&nbsp; ${s.rep} &nbsp;·&nbsp; ${periodLabel}</div><div class="fl">Confidential — manager use only</div></div></div>`;
-  });
+    if not obj_id:
+        return None, None
 
-  html += `</div></body></html>`;
-  return html;
-}
+    log(f"  Downloading {obj_id[:20]}... bucket={bucket_id[:8]}...")
 
-async function generate() {
-  const openaiKey = localStorage.getItem(KEY_STORE)||'';
-  const repFilter = document.getElementById('repSelect').value;
-  const period    = document.getElementById('periodSelect').value;
-  let dateFrom, dateTo;
-  if (period==='week') {
-    const today=new Date(), week=new Date(today); week.setDate(today.getDate()-7);
-    dateTo=today.toISOString().split('T')[0]; dateFrom=week.toISOString().split('T')[0];
-  } else {
-    dateFrom=document.getElementById('dateFrom').value; dateTo=document.getElementById('dateTo').value;
-  }
-  if (!openaiKey) { showStatus('Please enter your OpenAI API key','error'); return; }
-  if (!dateFrom||!dateTo) { showStatus('Please select a date range','error'); return; }
+    # Try bulk download in both regions since each recording has its own bucket
+    for region in ['uk', 'eu', 'us-east', 'us-west']:
+        start_url = f"https://api.8x8.com/storage/{region}/v3/bulk/download/start"
+        try:
+            body = json.dumps([obj_id]).encode('utf-8')
+            req  = urllib.request.Request(start_url, data=body, headers={
+                **headers, 'Content-Type': 'application/json',
+            }, method='POST')
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                result = json.loads(resp.read().decode('utf-8'))
+            zip_name = result.get('zipName')
+            status   = result.get('status')
+            if not zip_name:
+                continue
+            log(f"  Region {region}: started {zip_name[:8]}... status={status}")
 
-  document.getElementById('generateBtn').disabled=true;
-  document.getElementById('generateSpinner').style.display='block';
-  document.getElementById('generateLabel').textContent='Generating...';
-  hideStatus();
+            # Poll status
+            status_url = f"https://api.8x8.com/storage/{region}/v3/bulk/download/status/{zip_name}"
+            final_status = None
+            for attempt in range(8):
+                req2 = urllib.request.Request(status_url, headers=headers, method='GET')
+                with urllib.request.urlopen(req2, timeout=10) as resp2:
+                    res2 = json.loads(resp2.read().decode('utf-8'))
+                final_status = res2.get('status')
+                if final_status == 'DONE':
+                    break
+                elif final_status in ('FAILED', 'ERROR'):
+                    break
+                time.sleep(2)
 
-  const repsToProcess = repFilter?[repFilter]:REPS;
-  const steps=['Reading Scores','Reading Flags','Reading Verbatim','Reading Narratives','Reading Missed Opportunities','Reading Rapport',
-    ...repsToProcess.map(r=>'Coaching narrative — '+r.split(' ')[0]),'Building report'];
-  buildProgress(steps);
+            log(f"  Region {region}: final status={final_status}")
 
-  try {
-    stepRunning(0);
-    const scoreRows = rowsToObjects(await fetchTabCSV('Scores'));
-    const filteredScores = filterRows(scoreRows, dateFrom, dateTo, repFilter);
-    stepDone(0);
-    stepRunning(1);
-    const flagRows = filterRows(rowsToObjects(await fetchTabCSV('Flags')), dateFrom, dateTo, repFilter);
-    stepDone(1);
-    stepRunning(2);
-    const verbRows = filterRows(rowsToObjects(await fetchTabCSV('Verbatim')), dateFrom, dateTo, repFilter);
-    stepDone(2);
-    stepRunning(3);
-    const narrRows = filterRows(rowsToObjects(await fetchTabCSV('Narratives')), dateFrom, dateTo, repFilter);
-    stepDone(3);
-    stepRunning(4);
-    let missedRows = [];
-    try { missedRows = filterRows(rowsToObjects(await fetchTabCSV('MissedOpportunities')), dateFrom, dateTo, repFilter); } catch(e) { console.warn('MissedOpportunities tab not found yet:', e); }
-    stepDone(4);
-    stepRunning(5);
-    let rapportRows = [];
-    try { rapportRows = filterRows(rowsToObjects(await fetchTabCSV('Rapport')), dateFrom, dateTo, repFilter); } catch(e) { console.warn('Rapport tab not found yet:', e); }
-    stepDone(5);
+            if final_status != 'DONE':
+                continue
 
-    if (!filteredScores.length) {
-      showStatus('No calls found for this period (call-drive block calls are excluded by design). Make sure the Sheet is shared publicly.','error');
-      return;
-    }
+            # Download zip
+            dl_url = f"https://api.8x8.com/storage/{region}/v3/bulk/download/{zip_name}"
+            req3 = urllib.request.Request(dl_url, headers=headers, method='GET')
+            with urllib.request.urlopen(req3, timeout=120) as resp3:
+                zip_bytes = resp3.read()
+            log(f"  Downloaded {len(zip_bytes)/1024:.0f}KB from region {region}")
 
-    const repSummaries = repsToProcess.map(rep=>buildRepSummary(rep,filteredScores,flagRows,verbRows,narrRows,missedRows,rapportRows)).filter(Boolean);
-    if (!repSummaries.length) { showStatus('No data found for the selected rep(s) in this date range.','error'); return; }
+            # Extract audio
+            zf = zipfile.ZipFile(io.BytesIO(zip_bytes))
+            for name in zf.namelist():
+                if any(name.endswith(ext) for ext in ['.mp3','.wav','.m4a','.ogg']):
+                    audio = zf.read(name)
+                    ct    = 'audio/mpeg' if name.endswith('.mp3') else 'audio/wav'
+                    log(f"  Extracted: {name} ({len(audio)/1024:.0f}KB)")
+                    return audio, ct
+            log(f"  Zip contents: {zf.namelist()}")
+            return None, None
 
-    const narratives={};
-    for (let i=0;i<repsToProcess.length;i++) {
-      const step=6+i, rep=repsToProcess[i];
-      const summ=repSummaries.find(s=>s.rep===rep);
-      if (!summ) { stepDone(step); continue; }
-      stepRunning(step);
-      narratives[rep] = await generateCoachingNarrative(summ, openaiKey);
-      stepDone(step);
-    }
+        except urllib.error.HTTPError as e:
+            log(f"  Region {region} HTTP {e.code}")
+        except Exception as e:
+            log(f"  Region {region} error: {str(e)[:60]}")
 
-    const docStep=6+repsToProcess.length;
-    stepRunning(docStep);
-    const htmlDoc=generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period);
-    stepDone(docStep);
+    log(f"  All regions failed for {obj_id[:20]}")
+    return None, None
 
-    const a=Object.assign(document.createElement('a'),{ href:URL.createObjectURL(new Blob([htmlDoc],{type:'text/html'})), download:'QCG_Coaching_Report_'+dateTo+'.html' });
-    a.click(); URL.revokeObjectURL(a.href);
-    showStatus('Report downloaded. Open in Chrome and use Ctrl+P → Save as PDF for a clean document.','success');
-  } catch(e) {
-    showStatus('Error: '+e.message,'error'); console.error(e);
-  } finally {
-    document.getElementById('generateBtn').disabled=false;
-    document.getElementById('generateSpinner').style.display='none';
-    document.getElementById('generateLabel').textContent='Generate Coaching Report';
-  }
-}
-</script>
-</body>
-</html>
+
+# ── TRANSCRIBE ────────────────────────────────────────────────────────────
+
+def transcribe(audio_bytes, filename, content_type):
+    """Send audio to OpenAI Whisper for transcription."""
+    boundary = 'QCGboundary'
+    # Build multipart form data
+    body = (
+        f'--{boundary}\r\n'
+        f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
+        f'Content-Type: {content_type}\r\n\r\n'
+    ).encode() + audio_bytes + (
+        f'\r\n--{boundary}\r\n'
+        f'Content-Disposition: form-data; name="model"\r\n\r\nwhisper-1'
+        f'\r\n--{boundary}\r\n'
+        f'Content-Disposition: form-data; name="language"\r\n\r\nen'
+        f'\r\n--{boundary}\r\n'
+        f'Content-Disposition: form-data; name="response_format"\r\n\r\ntext'
+        f'\r\n--{boundary}--\r\n'
+    ).encode()
+
+    req = urllib.request.Request(
+        'https://api.openai.com/v1/audio/transcriptions',
+        data=body,
+        headers={
+            'Authorization': f'Bearer {OPENAI_KEY}',
+            'Content-Type':  f'multipart/form-data; boundary={boundary}',
+        },
+        method='POST'
+    )
+    with urllib.request.urlopen(req, timeout=120) as resp:
+        return resp.read().decode('utf-8').strip()
+
+# ── SCORE ─────────────────────────────────────────────────────────────────
+
+SECTOR_KNOWLEDGE = """
+SECTOR CONTEXT (UK care sector — use this to judge whether the rep is actually
+sector-fluent, or just running a generic broker script):
+
+Buying committee: Registered Manager (cares about CQC compliance, staffing,
+day-to-day risk, keeping their registration clean — usually the best
+influence/referral node even when not the final signer). Owner/Director at
+independents (total cost, claims history, personal liability, exit value).
+Group Ops Director at multi-site groups (consistency, risk standardisation
+across the portfolio). Finance Director/CFO at groups (premium spend, budget
+cycle timing). A rep who never works out which of these they're speaking to
+is a red flag.
+
+Regulatory drivers that create real urgency: CQC rating (Outstanding / Good /
+Requires Improvement / Inadequate) and date of last inspection — a rating
+change in either direction is a natural renewal-conversation trigger.
+Notifiable events, safeguarding referral volume, and RIDDOR incidents are
+genuine claims-risk indicators, not small talk.
+
+Insurance lines relevant to this sector: Employers' Liability (compulsory —
+manual handling/back injuries from resident transfers is the common claim),
+Public/Products Liability, Medical Malpractice / Care Liability (the
+sector-specific big one — negligence claims from pressure sores, medication
+errors, missed care plan actions — this is QCG's specialist differentiator
+vs generalist brokers), Management Liability/D&O (personal accountability of
+registered managers under CQC), Cyber (care records are special-category
+data, still under-bought — good cross-sell), Property/Business Interruption
+(homes can't just "close" — displacement of residents is a real, expensive
+scenario).
+
+Genuine buying signals to listen for: reliance on agency staff (insurers
+price this as elevated risk), National Living Wage pressure squeezing
+margins, a bad recent renewal or slow claims experience with the incumbent,
+M&A/ownership change, a new home opening (clean-slate decision, no
+incumbent inertia), a CQC rating change in either direction.
+
+Sector-specific objections and what they actually mean: "we're tied to a
+group panel" (local manager may have zero authority — qualify this early,
+don't waste the call), "never claimed in years" (untested territory —
+reframe around claims handling speed/quality, not just price), "insurance
+is a headache" (opening for a "we do the admin" pitch, not a price pitch).
+"""
+
+def score_call(transcript):
+    """Send transcript to GPT-4o-mini for scoring against QCG's BD doctrine."""
+    rep_list = ', '.join(REP_NAMES)
+
+    prompt_lines = [
+        'You are a senior sales coach at Quality Care Group (QCG), a specialist UK care-sector insurance broker, reviewing a call made by one of the Business Development Executives (BDEs) on the team.',
+        '',
+        'CRITICAL FRAME — read before scoring anything:',
+        'This is NOT a generic cold call. QCG runs a specific consultative doctrine (below) and the BDE is judged against THAT doctrine, not generic sales technique. A call can be technically smooth and still be a poor QCG call if it skipped qualifying, never created any tension with the incumbent broker, or let the prospect control the frame.',
+        'The BDE is NOT expected to go deep on technical insurance detail — coverage specifics, policy wording, underwriting detail — that is the New Business (NB) Executive\'s job at the appointment stage, not the BDE\'s job on this call. Do not penalise a BDE for staying at a sector-fluency level rather than a technical-underwriting level. DO penalise generic broker language with zero sector specificity.',
+        '',
+        'QCG BD DOCTRINE (the actual rubric this call is judged against):',
+        '1. QUALIFYING A LEAD — three things must be established before this is a good lead, in order of importance: (a) PRICE — what they paid last year / what they have received this year, (b) RISK PROFILE — CQC rating, claims history, service users/acuity, (c) CLIENT MENTALITY — are they genuinely engaging, or cagey/benchmarking us for a quote to leverage their current broker? A rep who never establishes at least two of these has not qualified the lead, regardless of how the call ends.',
+        '2. "WE DON\'T JUST WANT TO QUOTE, WE WANT TO BE YOUR BROKER" — QCG\'s doctrine is explicitly to NOT compete on beating a price by a small margin. The correct move is to create a problem: "how does your broker support your business beyond the insurance itself?" Reps who position purely as "we might be cheaper" are doing it wrong even if they get an outcome. Reps who create genuine dissatisfaction/jeopardy with the incumbent broker (claims handling speed, lack of proactive support, no CQC help, no risk review) are doing it right — this is REWARDED behaviour, not pushy behaviour.',
+        '3. IDENTIFYING THE REAL DECISION DRIVER — different buyers care about different things. A price-led approach on a buyer who actually cares about claims-handling speed or CQC support is a mismatch and should be flagged even if the call "went fine." The rep should be judged on whether they correctly identified what THIS buyer cares about most, not on whether they ran through a fixed script.',
+        '4. RAPPORT AND CONSULTATIVE DISCOVERY — the QCG approach explicitly avoids "customer service voice" and generic pitching. Good reps get the prospect talking, ask about their business broadly (not just insurance), and use silence/curiosity rather than over-explaining. This matters as much as the close.',
+        '5. SPECIFIC COMMITMENTS ONLY — a follow-up is only a real result if it has a specific day/time attached. "I\'ll call you sometime next month" or "in the near future" is a soft failure to close, not a result, even if the prospect sounded receptive. Always extract the literal commitment made and judge its specificity.',
+        '',
+        SECTOR_KNOWLEDGE,
+        '',
+        'SCORING PHILOSOPHY: score from the evidence in the transcript, not from an assumed distribution. Do not deflate scores to hit a target average. A genuinely strong, doctrine-aligned call deserves an 8-9. A call with real, specific failures deserves a 2-3. Most calls will land in between — let the transcript decide, not a preset curve.',
+        '',
+        'For EVERY dimension score, you must also state what SPECIFICALLY would move the score up one full band — not a generic "ask better questions" but the exact thing that was missing, anchored to the moment in the call where it should have happened.',
+        '',
+        'Return ONLY valid JSON — no preamble, no markdown:',
+        '{',
+        '  "detected_rep": "full name of QCG rep as heard",',
+        '  "detected_outcome": "meeting_booked|follow_up_agreed|not_interested|no_answer|callback_requested",',
+        '  "outcome_confidence": "high or low",',
+        '  "call_type": "decision_maker|gatekeeper|no_meaningful_conversation",',
+        '  "overall": 0,',
+        '  "dimensions": {',
+        '    "opening": {"score":0,"rationale":"specific moment or quote","what_would_raise_it":"the exact thing that would move this up a band, tied to a moment in the call"},',
+        '    "qualifying": {"score":0,"rationale":"did the rep establish price/risk/mentality per QCG doctrine — quote what was and was not established","what_would_raise_it":"..."},',
+        '    "objection_handling": {"score":0,"rationale":"specific moment or quote","what_would_raise_it":"..."},',
+        '    "questions_asked": {"score":0,"rationale":"specific moment or quote","what_would_raise_it":"...","strong_questions":["verbatim"],"weak_questions":["verbatim"],"missed_questions":[{"moment":"what prospect said","suggested":"what rep should have asked instead"}]},',
+        '    "closing": {"score":0,"rationale":"specific moment or quote","what_would_raise_it":"..."}',
+        '  },',
+        '  "qualifying_assessment": {',
+        '    "price_understood": "what the rep learned about current premium/spend, verbatim if possible, or null if never asked",',
+        '    "risk_profile_understood": "what the rep learned about CQC rating, claims history, staffing/agency %, or null if never asked",',
+        '    "client_mentality_read": "engaged | cagey_or_benchmarking | unclear — with the evidence that shows it",',
+        '    "decision_driver": "price | risk_and_compliance | relationship_and_service | unclear",',
+        '    "decision_driver_evidence": "the quote that reveals what this buyer actually cares about most",',
+        '    "rep_approach_matched_driver": true/false,',
+        '    "mismatch_note": "if false, specifically what the rep focused on instead and why that missed the mark, or null"',
+        '  },',
+        '  "broker_conflict": {',
+        '    "attempted": true/false,',
+        '    "evidence": "verbatim quote where the rep probed the incumbent broker relationship, or null",',
+        '    "missed_opportunity": "if not attempted or weak, the specific moment and exact alternative question the rep should have asked to create genuine jeopardy with the incumbent, or null"',
+        '  },',
+        '  "rapport": {',
+        '    "signals_built": [{"quote":"verbatim","what_worked":"why this built genuine rapport, not just politeness"}],',
+        '    "missed_opportunities": [{"moment":"what the prospect said or revealed, verbatim","rep_response":"what the rep actually said or did, verbatim, or none","better_response":"a specific, concrete alternative line the rep could have used instead"}]',
+        '  },',
+        '  "follow_up": {',
+        '    "specific": true/false,',
+        '    "commitment_quote": "the exact verbatim commitment made by either party",',
+        '    "note": "if not specific, state plainly that this is a soft/unmeasurable commitment and should not be treated as a real result"',
+        '  },',
+        '  "missed_opportunities": [{"quote":"exact prospect or rep words, max 40 words","category":"buying_signal|pain_point|rapport|qualifying|broker_conflict|follow_up|objection","suggested_response":"a specific, concrete alternative the rep could have said"}],',
+        '  "prospect_intelligence": {',
+        '    "current_broker":null,"renewal_date":null,"cqc_rating":"not mentioned",',
+        '    "claims_mentioned":false,"claims_detail":null,"beds_mentioned":null,',
+        '    "num_homes":null,"premium_increase_mentioned":false,"other_insurances":[],',
+        '    "other_businesses":null,"biggest_challenge":null,"staff_retention_mentioned":false,',
+        '    "expansion_plans":null,"external_hr_hs":false,"decision_factor":null,',
+        '    "current_broker_complaint":null,"renewal_window":"unknown","ownership_structure":"independent|small_mid_group|large_corporate|not_for_profit|unclear"',
+        '  },',
+        '  "rep_behaviours": {',
+        '    "mentioned_care_specialism":false,"mentioned_claims_team":false,',
+        '    "asked_renewal_date":false,"asked_claims_history":false,',
+        '    "asked_current_broker":false,"asked_business_challenges":false,',
+        '    "asked_staff_retention":false,"asked_expansion_plans":false,',
+        '    "asked_other_insurances":false,"mentioned_cqc_support":false,',
+        '    "identified_decision_maker_correctly":false,"consultative_approach":false,"generic_pitch":false',
+        '  },',
+        '  "flags": [],',
+        '  "verbatim": [{"type":"closing_attempt|weak_close|effective_close|missed_signal|strong_question|weak_question|objection_handled|buying_signal|missed_follow_up|pain_point_surfaced|credibility_error|claims_test_question|specialism_established|broker_conflict_created|vague_follow_up","quote":"exact words max 40 words"}],',
+        '  "narrative": "Four to six sentences minimum. Cover: what actually happened on the call, whether the rep followed QCG doctrine (qualifying, broker-jeopardy, decision-driver matching) or just ran a generic pitch, the single biggest missed opportunity with a quote, and a frank assessment of whether this was a good use of the prospect\'s and rep\'s time.",',
+        '  "strength": "One specific strength with direct quote and why it worked per QCG doctrine specifically, not generically.",',
+        '  "focus": "The single most important thing to fix. Name the exact moment, quote what was said, give a concrete alternative line, and state what score improvement this would realistically produce."',
+        '}',
+        '',
+        f'REP DETECTION: Reps are: {rep_list}',
+        'CALL TYPE DETECTION — classify first, this determines how the call is scored:',
+        'decision_maker = rep spoke directly with someone who has authority over insurance decisions (care home manager, owner, director, finance manager). Even if the call was short or ended badly.',
+        'gatekeeper = rep spoke with reception, admin, PA, or anyone who cannot make insurance decisions. Includes calls where rep was asked to call back without reaching the DM.',
+        'no_meaningful_conversation = voicemail, automated message, no answer, or under 20 seconds of actual conversation.',
+        'When call_type is gatekeeper or no_meaningful_conversation: set all dimension scores to 0, qualifying_assessment fields to null/unclear, broker_conflict.attempted to false, rapport to empty arrays, missed_opportunities to empty array, and flags to empty array. Only extract prospect_intelligence (renewal date, contact name etc) and outcome — there is nothing to coach on a call that never reached a decision-maker.',
+        '',
+        'OUTCOME DETECTION — be very precise:',
+        'meeting_booked = a specific day AND time was agreed for a follow-up call or meeting. Must be explicit from both parties. E.g. "Monday at 2pm", "Thursday morning", "next Tuesday at 10". If this happened, use meeting_booked even if the call was otherwise weak.',
+        'follow_up_agreed = rep will call back or send info but NO specific date/time was confirmed. E.g. "call me next week", "send some info over", "try me in a few weeks". This is a SOFT outcome — see follow_up.specific below, this should almost always be false for this outcome type.',
+        'not_interested = prospect clearly declined. E.g. "happy with our current broker", "not interested", "already renewed".',
+        'callback_requested = prospect asked rep to call back at a specific time they named.',
+        'no_answer = nobody answered, voicemail only, or under 30 seconds with no real conversation.',
+        'When choosing between meeting_booked and follow_up_agreed: if a specific time was named and agreed by both, it is meeting_booked. If vague ("next week", "soon", "sometime"), it is follow_up_agreed and follow_up.specific must be false.',
+        '',
+        'FLAG DEFINITIONS — apply every flag whose trigger condition is genuinely met by the transcript. Do not apply a flag just because its name sounds relevant; check the actual condition.',
+        'Negative flags:',
+        '  single_close_attempt — rep asked for the meeting/next step exactly once and did not try again after a deflection.',
+        '  no_close_attempt — rep never explicitly asked for a next step at all.',
+        '  terminology_error — rep used incorrect or generic insurance terminology that a sector specialist would not use.',
+        '  missed_buying_signal — prospect said something indicating readiness or interest and the rep did not pick up on it or follow it.',
+        '  pain_point_not_leveraged — prospect revealed a real business pain point (staffing, cost, poor incumbent service) and the rep moved on without connecting it to QCG\'s offering.',
+        '  failed_to_handle_objection — prospect raised a real objection and the rep either ignored it or gave a weak, non-specific response.',
+        '  no_permission_to_talk — rep launched into the pitch without checking the prospect had time/was free to talk.',
+        '  generic_pitch — rep described QCG in terms that could apply to any broker, no care-sector specificity, no named proof points.',
+        '  renewal_date_not_asked — rep never established when the current policy renews.',
+        '  current_broker_not_asked — rep never established who the current broker/insurer is.',
+        '  vague_follow_up — a follow-up outcome was reached but with no specific day/time attached (matches follow_up.specific=false).',
+        'Positive flags (require a real trigger — do not apply just because the call went reasonably):',
+        '  rapport_established — rep got the prospect volunteering information beyond direct answers, or the tone genuinely warmed (evidenced by a quote), not just politeness.',
+        '  strong_questions_asked — rep asked open, consultative questions about the business (not just insurance) that surfaced real information.',
+        '  effective_close — rep asked for a specific next step, handled any deflection, and secured a concrete, dated outcome.',
+        '  buying_signal_identified — prospect gave a clear signal of interest or dissatisfaction with their incumbent, and the rep explicitly acted on it in the same call.',
+        '  credibility_established — rep referenced a specific, named QCG proof point (care-only specialism since 2009, Claims Team of the Year, retention rate, mock CQC inspections) rather than a generic claim.',
+        '  specialism_established — rep explicitly positioned QCG as care-sector specialist, not a generalist broker offering a quote.',
+        '  claims_test_asked — rep asked about claims history in the last 3-5 years specifically, not just "any claims?".',
+        '  consultative_approach — rep asked about the business broadly (staffing, growth plans, challenges) before or instead of leading with insurance.',
+        '  broker_conflict_created — rep got the prospect articulating a genuine gap or frustration with their current broker (see broker_conflict field).',
+        '',
+        'MISSED OPPORTUNITIES — this is the section that matters most for coaching. Populate it generously. Every time the prospect said something a stronger rep would have picked up on and didn\'t — a buying signal, a pain point, an opening for rapport, an unqualified assumption, a chance to create broker jeopardy, a soft follow-up that should have been pinned to a date — capture it here with the exact quote and a concrete, usable alternative line. Aim for as many genuine instances as the call actually contains; do not pad with trivial ones, but do not under-report either.',
+        '',
+        'TRANSCRIPT:',
+        transcript,
+    ]
+    prompt = '\n'.join(prompt_lines)
+
+    data = http_post(
+        'https://api.openai.com/v1/chat/completions',
+        {
+            'model':       'gpt-4o-mini',
+            'messages':    [{'role':'user','content':prompt}],
+            'temperature': 0.2,
+            'max_tokens':  4500,
+        },
+        headers={'Authorization': f'Bearer {OPENAI_KEY}'}
+    )
+    raw = data['choices'][0]['message']['content'].strip()
+    if raw.startswith('```'):
+        raw = raw.split('```')[1]
+        if raw.startswith('json'): raw = raw[4:]
+    return json.loads(raw.strip())
+
+# ── WRITE TO SHEETS ───────────────────────────────────────────────────────
+
+def write_to_sheets(payload):
+    """Write scored call to Google Sheet via Apps Script."""
+    body    = json.dumps(payload).encode('utf-8')
+    req     = urllib.request.Request(
+        SHEETS_URL, data=body,
+        headers={'Content-Type': 'application/json'},
+        method='POST'
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read().decode('utf-8'))
+            return result.get('ok', False)
+    except Exception as e:
+        log(f"Sheet write warning: {e}")
+        return False
+
+# ── MATCH REP ─────────────────────────────────────────────────────────────
+
+def match_rep(detected, user_email=None):
+    """Match detected rep name to known reps."""
+    # Try user ID map first (most reliable)
+    if user_email and user_email in REP_MAP:
+        return REP_MAP[user_email], 'high'
+    if not detected:
+        return '', 'low'
+    dl = detected.lower().strip()
+    # Try exact variant match
+    if dl in REP_NAME_VARIANTS:
+        return REP_NAME_VARIANTS[dl], 'high'
+    # Try partial variant match
+    for variant, canonical in REP_NAME_VARIANTS.items():
+        if variant in dl or dl in variant:
+            return canonical, 'high'
+    # Try against rep names directly
+    for name in REP_NAMES:
+        parts = name.lower().split(' ')
+        if dl == name.lower() or all(p in dl for p in parts):
+            return name, 'high'
+        if any(p in dl for p in parts if len(p) > 3):
+            return name, 'low'
+    return '', 'low'
+
+# ── MAIN ──────────────────────────────────────────────────────────────────
+
+def main():
+    log("QCG Call Intelligence — nightly pipeline starting")
+
+    # Validate config
+    missing = []
+    if not EIGHT_BY_EIGHT_KEY:    missing.append('EIGHT_BY_EIGHT_KEY')
+    if not EIGHT_BY_EIGHT_SECRET: missing.append('EIGHT_BY_EIGHT_SECRET')
+    if not OPENAI_KEY:            missing.append('OPENAI_KEY')
+    if not SHEETS_URL:            missing.append('SHEETS_URL')
+    if missing:
+        raise Exception(f"Missing required secrets: {', '.join(missing)}")
+
+    if not EIGHT_BY_EIGHT_PBX_ID:
+        log("WARNING: EIGHT_BY_EIGHT_PBX_ID not set — will attempt to discover from API")
+
+    # Authenticate with 8x8
+    token = get_8x8_token()
+    token_time = time.time()
+    TOKEN_TTL = 3000  # refresh after 50 minutes (token lasts 3599s)
+
+    # Fetch call records
+    records = fetch_call_records(token)
+
+    if not records:
+        log("No call records found for this period — exiting")
+        return
+
+    processed = 0
+    skipped   = 0
+    errors    = 0
+
+    # Load already-processed call IDs to avoid duplicates
+    processed_ids_file = 'processed_calls.txt'
+    try:
+        with open(processed_ids_file, 'r') as f:
+            already_done = set(f.read().splitlines())
+        log(f"Loaded {len(already_done)} previously processed call IDs")
+    except FileNotFoundError:
+        already_done = set()
+        log("No processed calls file yet — starting fresh")
+
+    for record in records:
+        # Cloud Storage Service object fields
+        # objectName format: ipbx:qualitycareinsura:callrecording:users:EXT:TIMESTAMP-CALLID-EXT-NUMBER_E.mp3
+        call_id   = record.get('id', '')
+        filename  = record.get('objectName', f'{call_id}.mp3')
+        created   = record.get('createdTime', '')
+        date_str  = created[:10] if created else datetime.now().strftime('%Y-%m-%d')
+        time_str  = created[11:16] if len(created) > 15 else ''
+
+        # Extract metadata from tags
+        tags      = {t.get('key'):t.get('value') for t in record.get('tags', [])}
+        prospect  = tags.get('address') or tags.get('remotePartyNumber', '')
+        user_email= record.get('userId', '') or tags.get('userId', '')
+
+        # Parse extension and prospect from objectName if tags incomplete
+        # Format: ipbx:tenant:callrecording:users:EXT:TIMESTAMP-CALLID-EXT-PROSPECT_E.mp3
+        obj_name  = filename.replace('ipbx.', 'ipbx:').replace('.callrecording.', ':callrecording:')
+        parts     = obj_name.split(':')
+        if not prospect and len(parts) >= 6:
+            # Last part contains prospect number
+            last = parts[-1].replace('_E.mp3','').replace('.mp3','')
+            sub  = last.split('-')
+            if sub: prospect = sub[-1]
+
+        # Duration from storedBytes estimate or tags
+        duration  = int(tags.get('duration', 0)) if tags.get('duration') else 0
+
+        # Skip if already processed
+        if call_id in already_done:
+            skipped += 1
+            continue
+
+        # Extract extension from objectName
+        # Format: ipbx:qualitycareinsura:callrecording:users:EXT:...
+        obj_name = record.get('objectName', '')
+        ext = ''
+        parts = obj_name.replace('ipbx.', 'ipbx:').split(':')
+        for i, p in enumerate(parts):
+            if p == 'users' and i + 1 < len(parts):
+                ext = parts[i + 1]
+                break
+
+        # Filter to our 5 reps by extension BEFORE downloading
+        if ext and ext not in REP_EXTENSIONS:
+            log(f"Skipping ext {ext} — not one of our reps")
+            skipped += 1
+            continue
+
+        # Get rep name from extension if available
+        rep_from_ext = REP_EXTENSIONS.get(ext, '')
+
+        # Skip calls under 60 seconds
+        duration_secs = duration / 1000 if duration > 1000 else duration
+        if duration_secs < 60:
+            log(f"Skipping {call_id} — too short ({duration_secs:.0f}s)")
+            skipped += 1
+            continue
+
+        # Skip Tuesday 09:00-12:30 UK — the call-drive block. Different call
+        # goal (raw volume, not consultative BD) means coaching scores from
+        # this window aren't comparable to normal calls and would skew the
+        # rep's averages. We still count it toward daily call volume by
+        # logging a minimal, unscored row rather than silently dropping it.
+        if is_call_drive_window(created):
+            log(f"  Call-drive window (Tue AM) — logging volume only, not scoring")
+            call_drive_payload = {
+                'call_id':   f'auto_{call_id}_{date_str}',
+                'rep':       rep_from_ext,
+                'rep_id':    rep_from_ext[:2].upper() if rep_from_ext else '',
+                'manager':   'Josh',
+                'date':      date_str,
+                'time':      time_str,
+                'duration':  duration,
+                'filename':  filename,
+                'prospect':  prospect,
+                'outcome':   '',
+                'call_type': 'call_drive',
+                'overall':   '',
+                'dimensions': {},
+                'flags': [], 'verbatim': [], 'narrative': '',
+                'strength': '', 'focus': '', 'transcript': '',
+                'prospect_intelligence': {}, 'rep_behaviours': {},
+            }
+            write_to_sheets(call_drive_payload)
+            skipped += 1
+            already_done.add(call_id)
+            with open(processed_ids_file, 'a') as f:
+                f.write(call_id + '\n')
+            continue
+
+        # Refresh token if approaching expiry
+        if time.time() - token_time > TOKEN_TTL:
+            log("Refreshing 8x8 auth token...")
+            token = get_8x8_token()
+            token_time = time.time()
+
+        log(f"Processing call {call_id} ({duration_secs:.0f}s) ext={ext} ({rep_from_ext})")
+
+        try:
+            # Fetch recording
+            audio, content_type = fetch_recording(token, record)
+            if not audio:
+                log(f"  No recording available — skipping")
+                skipped += 1
+                continue
+
+            # Transcribe
+            log(f"  Transcribing ({len(audio)/1024:.0f}KB)...")
+            transcript = transcribe(audio, filename, content_type or 'audio/mpeg')
+            if not transcript or len(transcript) < 20:
+                log(f"  Transcript too short — skipping")
+                skipped += 1
+                continue
+
+            # Score
+            log(f"  Scoring with GPT-4o...")
+            result = score_call(transcript)
+
+            # Match rep
+            # Use extension-based rep as ground truth if available
+            if rep_from_ext:
+                rep            = rep_from_ext
+                rep_confidence = 'high'
+            else:
+                rep, rep_confidence = match_rep(result.get('detected_rep',''), user_email)
+            outcome     = result.get('detected_outcome', '')
+            out_conf    = result.get('outcome_confidence', 'low')
+
+            # Build payload
+            d  = result.get('dimensions', {})
+            pi = result.get('prospect_intelligence', {})
+            rb = result.get('rep_behaviours', {})
+            q  = d.get('questions_asked', {})
+
+            payload = {
+                'call_id':    f'auto_{call_id}_{date_str}',
+                'rep':        rep,
+                'rep_id':     rep[:2].upper() if rep else '',
+                'manager':    'Josh',
+                'date':       date_str,
+                'time':       time_str,
+                'duration':   duration,
+                'filename':   filename,
+                'prospect':   prospect,
+                'outcome':    outcome,
+                'call_type':  result.get('call_type', ''),
+                'overall':    result.get('overall', ''),
+                'dimensions': d,
+                'flags':      result.get('flags', []),
+                'verbatim':   result.get('verbatim', []),
+                'narrative':  result.get('narrative', ''),
+                'strength':   result.get('strength', ''),
+                'focus':      result.get('focus', ''),
+                'transcript': transcript,
+                'prospect_intelligence': pi,
+                'rep_behaviours':        rb,
+                'qualifying_assessment': result.get('qualifying_assessment', {}),
+                'broker_conflict':       result.get('broker_conflict', {}),
+                'rapport':               result.get('rapport', {}),
+                'follow_up':             result.get('follow_up', {}),
+                'missed_opportunities':  result.get('missed_opportunities', []),
+            }
+
+            # Skip no_answer and gatekeeper calls — not worth logging
+            call_type = result.get('call_type', 'decision_maker')
+            if outcome == 'no_answer' or call_type in ('no_meaningful_conversation',):
+                log(f"  Skipping — {call_type}/{outcome}, not logging")
+                skipped += 1
+                already_done.add(call_id)
+                with open(processed_ids_file, 'a') as f:
+                    f.write(call_id + '\n')
+                continue
+
+            # Log gatekeeper calls for intel only (no scoring)
+            if call_type == 'gatekeeper':
+                log(f"  Gatekeeper call — logging intel only, no score")
+
+            # Write to Sheet
+            log(f"  Writing to Sheet (rep={rep}, outcome={outcome})...")
+            ok = write_to_sheets(payload)
+            if ok:
+                log(f"  ✓ Saved — {rep} | {outcome} | overall={result.get('overall')}")
+                processed += 1
+                # Mark as processed
+                already_done.add(call_id)
+                with open(processed_ids_file, 'a') as f:
+                    f.write(call_id + '\n')
+            else:
+                log(f"  Sheet write returned not-ok")
+                errors += 1
+
+            # Rate limiting — be gentle with APIs
+            time.sleep(2)
+
+        except Exception as e:
+            log(f"  ERROR processing {call_id}: {e}")
+            errors += 1
+            continue
+
+    log(f"\nPipeline complete — processed:{processed} skipped:{skipped} errors:{errors}")
+
+if __name__ == '__main__':
+    main()
