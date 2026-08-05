@@ -16,6 +16,29 @@ import urllib.request
 import urllib.parse
 import urllib.error
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+LONDON_TZ = ZoneInfo('Europe/London')
+
+def is_call_drive_window(created_iso):
+    """
+    Tuesday 09:00-12:30 UK local time is the team's cold-call drive block —
+    pure volume dialling, not consultative BD calls. Excluded from coaching
+    scoring entirely (different goal for the call = not comparable data),
+    but still counted toward daily call-volume KPI tracking upstream.
+    """
+    if not created_iso:
+        return False
+    try:
+        # 8x8 createdTime is ISO 8601 UTC, e.g. 2026-06-21T13:43:13Z
+        dt_utc = datetime.fromisoformat(created_iso.replace('Z', '+00:00'))
+        dt_ldn = dt_utc.astimezone(LONDON_TZ)
+    except Exception:
+        return False
+    if dt_ldn.weekday() != 1:  # Monday=0, Tuesday=1
+        return False
+    minutes_since_midnight = dt_ldn.hour * 60 + dt_ldn.minute
+    return (9 * 60) <= minutes_since_midnight <= (12 * 60 + 30)
 
 # ── CONFIG ────────────────────────────────────────────────────────────────
 # These are set as GitHub Secrets — never hardcode them here
@@ -340,43 +363,118 @@ def transcribe(audio_bytes, filename, content_type):
 
 # ── SCORE ─────────────────────────────────────────────────────────────────
 
+SECTOR_KNOWLEDGE = """
+SECTOR CONTEXT (UK care sector — use this to judge whether the rep is actually
+sector-fluent, or just running a generic broker script):
+
+Buying committee: Registered Manager (cares about CQC compliance, staffing,
+day-to-day risk, keeping their registration clean — usually the best
+influence/referral node even when not the final signer). Owner/Director at
+independents (total cost, claims history, personal liability, exit value).
+Group Ops Director at multi-site groups (consistency, risk standardisation
+across the portfolio). Finance Director/CFO at groups (premium spend, budget
+cycle timing). A rep who never works out which of these they're speaking to
+is a red flag.
+
+Regulatory drivers that create real urgency: CQC rating (Outstanding / Good /
+Requires Improvement / Inadequate) and date of last inspection — a rating
+change in either direction is a natural renewal-conversation trigger.
+Notifiable events, safeguarding referral volume, and RIDDOR incidents are
+genuine claims-risk indicators, not small talk.
+
+Insurance lines relevant to this sector: Employers' Liability (compulsory —
+manual handling/back injuries from resident transfers is the common claim),
+Public/Products Liability, Medical Malpractice / Care Liability (the
+sector-specific big one — negligence claims from pressure sores, medication
+errors, missed care plan actions — this is QCG's specialist differentiator
+vs generalist brokers), Management Liability/D&O (personal accountability of
+registered managers under CQC), Cyber (care records are special-category
+data, still under-bought — good cross-sell), Property/Business Interruption
+(homes can't just "close" — displacement of residents is a real, expensive
+scenario).
+
+Genuine buying signals to listen for: reliance on agency staff (insurers
+price this as elevated risk), National Living Wage pressure squeezing
+margins, a bad recent renewal or slow claims experience with the incumbent,
+M&A/ownership change, a new home opening (clean-slate decision, no
+incumbent inertia), a CQC rating change in either direction.
+
+Sector-specific objections and what they actually mean: "we're tied to a
+group panel" (local manager may have zero authority — qualify this early,
+don't waste the call), "never claimed in years" (untested territory —
+reframe around claims handling speed/quality, not just price), "insurance
+is a headache" (opening for a "we do the admin" pitch, not a price pitch).
+"""
+
 def score_call(transcript):
-    """Send transcript to GPT-4o for scoring."""
-    flag_list = ','.join([
-        'single_close_attempt','no_close_attempt','terminology_error',
-        'missed_buying_signal','pain_point_not_leveraged',
-        'failed_to_handle_objection','no_permission_to_talk',
-        'generic_pitch','renewal_date_not_asked','current_broker_not_asked',
-        'rapport_established','strong_questions_asked','effective_close',
-        'buying_signal_identified','credibility_established',
-        'specialism_established','claims_test_asked','consultative_approach',
-    ])
+    """Send transcript to GPT-4o-mini for scoring against QCG's BD doctrine."""
     rep_list = ', '.join(REP_NAMES)
 
     prompt_lines = [
-        'You are an expert sales coach analysing business development calls made by QCG Insurance to care home operators.',
-        'QCG is a specialist care sector insurance broker — care-only specialism, in-house claims team, mock CQC inspections, bespoke cover.',
-        'Be demanding. Most cold calls sit at 4-6. A 7 requires clear evidence. 8+ is rare. Never inflate.',
+        'You are a senior sales coach at Quality Care Group (QCG), a specialist UK care-sector insurance broker, reviewing a call made by one of the Business Development Executives (BDEs) on the team.',
+        '',
+        'CRITICAL FRAME — read before scoring anything:',
+        'This is NOT a generic cold call. QCG runs a specific consultative doctrine (below) and the BDE is judged against THAT doctrine, not generic sales technique. A call can be technically smooth and still be a poor QCG call if it skipped qualifying, never created any tension with the incumbent broker, or let the prospect control the frame.',
+        'The BDE is NOT expected to go deep on technical insurance detail — coverage specifics, policy wording, underwriting detail — that is the New Business (NB) Executive\'s job at the appointment stage, not the BDE\'s job on this call. Do not penalise a BDE for staying at a sector-fluency level rather than a technical-underwriting level. DO penalise generic broker language with zero sector specificity.',
+        '',
+        'QCG BD DOCTRINE (the actual rubric this call is judged against):',
+        '1. QUALIFYING A LEAD — three things must be established before this is a good lead, in order of importance: (a) PRICE — what they paid last year / what they have received this year, (b) RISK PROFILE — CQC rating, claims history, service users/acuity, (c) CLIENT MENTALITY — are they genuinely engaging, or cagey/benchmarking us for a quote to leverage their current broker? A rep who never establishes at least two of these has not qualified the lead, regardless of how the call ends.',
+        '2. "WE DON\'T JUST WANT TO QUOTE, WE WANT TO BE YOUR BROKER" — QCG\'s doctrine is explicitly to NOT compete on beating a price by a small margin. The correct move is to create a problem: "how does your broker support your business beyond the insurance itself?" Reps who position purely as "we might be cheaper" are doing it wrong even if they get an outcome. Reps who create genuine dissatisfaction/jeopardy with the incumbent broker (claims handling speed, lack of proactive support, no CQC help, no risk review) are doing it right — this is REWARDED behaviour, not pushy behaviour.',
+        '3. IDENTIFYING THE REAL DECISION DRIVER — different buyers care about different things. A price-led approach on a buyer who actually cares about claims-handling speed or CQC support is a mismatch and should be flagged even if the call "went fine." The rep should be judged on whether they correctly identified what THIS buyer cares about most, not on whether they ran through a fixed script.',
+        '4. RAPPORT AND CONSULTATIVE DISCOVERY — the QCG approach explicitly avoids "customer service voice" and generic pitching. Good reps get the prospect talking, ask about their business broadly (not just insurance), and use silence/curiosity rather than over-explaining. This matters as much as the close.',
+        '5. SPECIFIC COMMITMENTS ONLY — a follow-up is only a real result if it has a specific day/time attached. "I\'ll call you sometime next month" or "in the near future" is a soft failure to close, not a result, even if the prospect sounded receptive. Always extract the literal commitment made and judge its specificity.',
+        '',
+        SECTOR_KNOWLEDGE,
+        '',
+        'SCORING PHILOSOPHY: score from the evidence in the transcript, not from an assumed distribution. Do not deflate scores to hit a target average. A genuinely strong, doctrine-aligned call deserves an 8-9. A call with real, specific failures deserves a 2-3. Most calls will land in between — let the transcript decide, not a preset curve.',
+        '',
+        'For EVERY dimension score, you must also state what SPECIFICALLY would move the score up one full band — not a generic "ask better questions" but the exact thing that was missing, anchored to the moment in the call where it should have happened.',
         '',
         'Return ONLY valid JSON — no preamble, no markdown:',
         '{',
         '  "detected_rep": "full name of QCG rep as heard",',
         '  "detected_outcome": "meeting_booked|follow_up_agreed|not_interested|no_answer|callback_requested",',
         '  "outcome_confidence": "high or low",',
+        '  "call_type": "decision_maker|gatekeeper|no_meaningful_conversation",',
         '  "overall": 0,',
         '  "dimensions": {',
-        '    "opening": {"score":0,"rationale":"specific moment or quote"},',
-        '    "objection_handling": {"score":0,"rationale":"specific moment or quote"},',
-        '    "questions_asked": {"score":0,"rationale":"specific moment or quote","strong_questions":[],"weak_questions":[],"missed_questions":[]},',
-        '    "closing": {"score":0,"rationale":"specific moment or quote"}',
+        '    "opening": {"score":0,"rationale":"specific moment or quote","what_would_raise_it":"the exact thing that would move this up a band, tied to a moment in the call"},',
+        '    "qualifying": {"score":0,"rationale":"did the rep establish price/risk/mentality per QCG doctrine — quote what was and was not established","what_would_raise_it":"..."},',
+        '    "objection_handling": {"score":0,"rationale":"specific moment or quote","what_would_raise_it":"..."},',
+        '    "questions_asked": {"score":0,"rationale":"specific moment or quote","what_would_raise_it":"...","strong_questions":["verbatim"],"weak_questions":["verbatim"],"missed_questions":[{"moment":"what prospect said","suggested":"what rep should have asked instead"}]},',
+        '    "closing": {"score":0,"rationale":"specific moment or quote","what_would_raise_it":"..."}',
         '  },',
+        '  "qualifying_assessment": {',
+        '    "price_understood": "what the rep learned about current premium/spend, verbatim if possible, or null if never asked",',
+        '    "risk_profile_understood": "what the rep learned about CQC rating, claims history, staffing/agency %, or null if never asked",',
+        '    "client_mentality_read": "engaged | cagey_or_benchmarking | unclear — with the evidence that shows it",',
+        '    "decision_driver": "price | risk_and_compliance | relationship_and_service | unclear",',
+        '    "decision_driver_evidence": "the quote that reveals what this buyer actually cares about most",',
+        '    "rep_approach_matched_driver": true/false,',
+        '    "mismatch_note": "if false, specifically what the rep focused on instead and why that missed the mark, or null"',
+        '  },',
+        '  "broker_conflict": {',
+        '    "attempted": true/false,',
+        '    "evidence": "verbatim quote where the rep probed the incumbent broker relationship, or null",',
+        '    "missed_opportunity": "if not attempted or weak, the specific moment and exact alternative question the rep should have asked to create genuine jeopardy with the incumbent, or null"',
+        '  },',
+        '  "rapport": {',
+        '    "signals_built": [{"quote":"verbatim","what_worked":"why this built genuine rapport, not just politeness"}],',
+        '    "missed_opportunities": [{"moment":"what the prospect said or revealed, verbatim","rep_response":"what the rep actually said or did, verbatim, or none","better_response":"a specific, concrete alternative line the rep could have used instead"}]',
+        '  },',
+        '  "follow_up": {',
+        '    "specific": true/false,',
+        '    "commitment_quote": "the exact verbatim commitment made by either party",',
+        '    "note": "if not specific, state plainly that this is a soft/unmeasurable commitment and should not be treated as a real result"',
+        '  },',
+        '  "missed_opportunities": [{"quote":"exact prospect or rep words, max 40 words","category":"buying_signal|pain_point|rapport|qualifying|broker_conflict|follow_up|objection","suggested_response":"a specific, concrete alternative the rep could have said"}],',
         '  "prospect_intelligence": {',
         '    "current_broker":null,"renewal_date":null,"cqc_rating":"not mentioned",',
         '    "claims_mentioned":false,"claims_detail":null,"beds_mentioned":null,',
         '    "num_homes":null,"premium_increase_mentioned":false,"other_insurances":[],',
         '    "other_businesses":null,"biggest_challenge":null,"staff_retention_mentioned":false,',
         '    "expansion_plans":null,"external_hr_hs":false,"decision_factor":null,',
-        '    "current_broker_complaint":null,"renewal_window":"unknown"',
+        '    "current_broker_complaint":null,"renewal_window":"unknown","ownership_structure":"independent|small_mid_group|large_corporate|not_for_profit|unclear"',
         '  },',
         '  "rep_behaviours": {',
         '    "mentioned_care_specialism":false,"mentioned_claims_team":false,',
@@ -384,30 +482,55 @@ def score_call(transcript):
         '    "asked_current_broker":false,"asked_business_challenges":false,',
         '    "asked_staff_retention":false,"asked_expansion_plans":false,',
         '    "asked_other_insurances":false,"mentioned_cqc_support":false,',
-        '    "consultative_approach":false,"generic_pitch":false',
+        '    "identified_decision_maker_correctly":false,"consultative_approach":false,"generic_pitch":false',
         '  },',
         '  "flags": [],',
-        '  "verbatim": [{"type":"closing_attempt|weak_close|effective_close|missed_signal|strong_question|weak_question|objection_handled|buying_signal|missed_follow_up|pain_point_surfaced|credibility_error|claims_test_question|specialism_established","quote":"exact words max 35 words"}],',
-        '  "narrative": "Two sentences. First: what happened. Second: frank quality assessment.",',
-        '  "strength": "One specific strength with direct quote.",',
-        '  "focus": "Most important thing to fix with exact moment, quote, and concrete alternative."',
+        '  "verbatim": [{"type":"closing_attempt|weak_close|effective_close|missed_signal|strong_question|weak_question|objection_handled|buying_signal|missed_follow_up|pain_point_surfaced|credibility_error|claims_test_question|specialism_established|broker_conflict_created|vague_follow_up","quote":"exact words max 40 words"}],',
+        '  "narrative": "Four to six sentences minimum. Cover: what actually happened on the call, whether the rep followed QCG doctrine (qualifying, broker-jeopardy, decision-driver matching) or just ran a generic pitch, the single biggest missed opportunity with a quote, and a frank assessment of whether this was a good use of the prospect\'s and rep\'s time.",',
+        '  "strength": "One specific strength with direct quote and why it worked per QCG doctrine specifically, not generically.",',
+        '  "focus": "The single most important thing to fix. Name the exact moment, quote what was said, give a concrete alternative line, and state what score improvement this would realistically produce."',
         '}',
         '',
         f'REP DETECTION: Reps are: {rep_list}',
+        'CALL TYPE DETECTION — classify first, this determines how the call is scored:',
+        'decision_maker = rep spoke directly with someone who has authority over insurance decisions (care home manager, owner, director, finance manager). Even if the call was short or ended badly.',
+        'gatekeeper = rep spoke with reception, admin, PA, or anyone who cannot make insurance decisions. Includes calls where rep was asked to call back without reaching the DM.',
+        'no_meaningful_conversation = voicemail, automated message, no answer, or under 20 seconds of actual conversation.',
+        'When call_type is gatekeeper or no_meaningful_conversation: set all dimension scores to 0, qualifying_assessment fields to null/unclear, broker_conflict.attempted to false, rapport to empty arrays, missed_opportunities to empty array, and flags to empty array. Only extract prospect_intelligence (renewal date, contact name etc) and outcome — there is nothing to coach on a call that never reached a decision-maker.',
+        '',
         'OUTCOME DETECTION — be very precise:',
         'meeting_booked = a specific day AND time was agreed for a follow-up call or meeting. Must be explicit from both parties. E.g. "Monday at 2pm", "Thursday morning", "next Tuesday at 10". If this happened, use meeting_booked even if the call was otherwise weak.',
-        'follow_up_agreed = rep will call back or send info but NO specific date/time was confirmed. E.g. "call me next week", "send some info over", "try me in a few weeks".',
+        'follow_up_agreed = rep will call back or send info but NO specific date/time was confirmed. E.g. "call me next week", "send some info over", "try me in a few weeks". This is a SOFT outcome — see follow_up.specific below, this should almost always be false for this outcome type.',
         'not_interested = prospect clearly declined. E.g. "happy with our current broker", "not interested", "already renewed".',
         'callback_requested = prospect asked rep to call back at a specific time they named.',
         'no_answer = nobody answered, voicemail only, or under 30 seconds with no real conversation.',
-        'When choosing between meeting_booked and follow_up_agreed: if a specific time was named and agreed by both, it is meeting_booked. If vague, it is follow_up_agreed.',
+        'When choosing between meeting_booked and follow_up_agreed: if a specific time was named and agreed by both, it is meeting_booked. If vague ("next week", "soon", "sometime"), it is follow_up_agreed and follow_up.specific must be false.',
         '',
-        'SCORING: Opening(8-10:care specialism+permission+compelling reason|5-7:missed one element|3-4:generic|1-2:fumbled)',
-        'Objections(8-10:reframed+kept going|5-7:accepted some deflections|3-4:could not navigate|1-2:capitulated)',
-        'Questions(8-10:consultative+business challenges+follow-up|5-7:surface level|3-4:closed only|1-2:just pitched)',
-        'Closing(8-10:clear ask+handled deflection+concrete outcome|5-7:asked once accepted deflection|3-4:vague|1-2:never asked)',
-        f'FLAGS: {flag_list}',
-        'VERBATIM: 5-6 moments. Every closing attempt verbatim. Most important missed opportunity. Exact words only.',
+        'FLAG DEFINITIONS — apply every flag whose trigger condition is genuinely met by the transcript. Do not apply a flag just because its name sounds relevant; check the actual condition.',
+        'Negative flags:',
+        '  single_close_attempt — rep asked for the meeting/next step exactly once and did not try again after a deflection.',
+        '  no_close_attempt — rep never explicitly asked for a next step at all.',
+        '  terminology_error — rep used incorrect or generic insurance terminology that a sector specialist would not use.',
+        '  missed_buying_signal — prospect said something indicating readiness or interest and the rep did not pick up on it or follow it.',
+        '  pain_point_not_leveraged — prospect revealed a real business pain point (staffing, cost, poor incumbent service) and the rep moved on without connecting it to QCG\'s offering.',
+        '  failed_to_handle_objection — prospect raised a real objection and the rep either ignored it or gave a weak, non-specific response.',
+        '  no_permission_to_talk — rep launched into the pitch without checking the prospect had time/was free to talk.',
+        '  generic_pitch — rep described QCG in terms that could apply to any broker, no care-sector specificity, no named proof points.',
+        '  renewal_date_not_asked — rep never established when the current policy renews.',
+        '  current_broker_not_asked — rep never established who the current broker/insurer is.',
+        '  vague_follow_up — a follow-up outcome was reached but with no specific day/time attached (matches follow_up.specific=false).',
+        'Positive flags (require a real trigger — do not apply just because the call went reasonably):',
+        '  rapport_established — rep got the prospect volunteering information beyond direct answers, or the tone genuinely warmed (evidenced by a quote), not just politeness.',
+        '  strong_questions_asked — rep asked open, consultative questions about the business (not just insurance) that surfaced real information.',
+        '  effective_close — rep asked for a specific next step, handled any deflection, and secured a concrete, dated outcome.',
+        '  buying_signal_identified — prospect gave a clear signal of interest or dissatisfaction with their incumbent, and the rep explicitly acted on it in the same call.',
+        '  credibility_established — rep referenced a specific, named QCG proof point (care-only specialism since 2009, Claims Team of the Year, retention rate, mock CQC inspections) rather than a generic claim.',
+        '  specialism_established — rep explicitly positioned QCG as care-sector specialist, not a generalist broker offering a quote.',
+        '  claims_test_asked — rep asked about claims history in the last 3-5 years specifically, not just "any claims?".',
+        '  consultative_approach — rep asked about the business broadly (staffing, growth plans, challenges) before or instead of leading with insurance.',
+        '  broker_conflict_created — rep got the prospect articulating a genuine gap or frustration with their current broker (see broker_conflict field).',
+        '',
+        'MISSED OPPORTUNITIES — this is the section that matters most for coaching. Populate it generously. Every time the prospect said something a stronger rep would have picked up on and didn\'t — a buying signal, a pain point, an opening for rapport, an unqualified assumption, a chance to create broker jeopardy, a soft follow-up that should have been pinned to a date — capture it here with the exact quote and a concrete, usable alternative line. Aim for as many genuine instances as the call actually contains; do not pad with trivial ones, but do not under-report either.',
         '',
         'TRANSCRIPT:',
         transcript,
@@ -420,15 +543,37 @@ def score_call(transcript):
             'model':       'gpt-4o-mini',
             'messages':    [{'role':'user','content':prompt}],
             'temperature': 0.2,
-            'max_tokens':  2500,
+            'max_tokens':  4500,
         },
         headers={'Authorization': f'Bearer {OPENAI_KEY}'}
     )
+    finish_reason = data['choices'][0].get('finish_reason', 'unknown')
+    usage         = data.get('usage', {})
     raw = data['choices'][0]['message']['content'].strip()
     if raw.startswith('```'):
         raw = raw.split('```')[1]
         if raw.startswith('json'): raw = raw[4:]
-    return json.loads(raw.strip())
+    raw = raw.strip()
+
+    # ── DIAGNOSTIC LOGGING — remove once the sparse-field issue is diagnosed ──
+    # finish_reason='length' means the model got cut off mid-response before
+    # completing the JSON — that alone would explain missing fields and is a
+    # completely different fix (raise max_tokens) than a model capability issue.
+    log(f"    [diag] finish_reason={finish_reason} prompt_tokens={usage.get('prompt_tokens')} completion_tokens={usage.get('completion_tokens')}")
+    parsed = json.loads(raw)
+    top_level_keys = list(parsed.keys())
+    dim_keys = list(parsed.get('dimensions', {}).keys())
+    qual = parsed.get('dimensions', {}).get('qualifying', 'MISSING')
+    bc   = parsed.get('broker_conflict', 'MISSING')
+    mo   = parsed.get('missed_opportunities', 'MISSING')
+    log(f"    [diag] top-level keys returned: {top_level_keys}")
+    log(f"    [diag] dimensions keys returned: {dim_keys}")
+    log(f"    [diag] dimensions.qualifying = {json.dumps(qual)[:300]}")
+    log(f"    [diag] broker_conflict = {json.dumps(bc)[:300]}")
+    log(f"    [diag] missed_opportunities = {json.dumps(mo)[:300]}")
+    # ── END DIAGNOSTIC LOGGING ──
+
+    return parsed
 
 # ── WRITE TO SHEETS ───────────────────────────────────────────────────────
 
@@ -575,6 +720,38 @@ def main():
             skipped += 1
             continue
 
+        # Skip Tuesday 09:00-12:30 UK — the call-drive block. Different call
+        # goal (raw volume, not consultative BD) means coaching scores from
+        # this window aren't comparable to normal calls and would skew the
+        # rep's averages. We still count it toward daily call volume by
+        # logging a minimal, unscored row rather than silently dropping it.
+        if is_call_drive_window(created):
+            log(f"  Call-drive window (Tue AM) — logging volume only, not scoring")
+            call_drive_payload = {
+                'call_id':   f'auto_{call_id}_{date_str}',
+                'rep':       rep_from_ext,
+                'rep_id':    rep_from_ext[:2].upper() if rep_from_ext else '',
+                'manager':   'Josh',
+                'date':      date_str,
+                'time':      time_str,
+                'duration':  duration,
+                'filename':  filename,
+                'prospect':  prospect,
+                'outcome':   '',
+                'call_type': 'call_drive',
+                'overall':   '',
+                'dimensions': {},
+                'flags': [], 'verbatim': [], 'narrative': '',
+                'strength': '', 'focus': '', 'transcript': '',
+                'prospect_intelligence': {}, 'rep_behaviours': {},
+            }
+            write_to_sheets(call_drive_payload)
+            skipped += 1
+            already_done.add(call_id)
+            with open(processed_ids_file, 'a') as f:
+                f.write(call_id + '\n')
+            continue
+
         # Refresh token if approaching expiry
         if time.time() - token_time > TOKEN_TTL:
             log("Refreshing 8x8 auth token...")
@@ -630,6 +807,7 @@ def main():
                 'filename':   filename,
                 'prospect':   prospect,
                 'outcome':    outcome,
+                'call_type':  result.get('call_type', ''),
                 'overall':    result.get('overall', ''),
                 'dimensions': d,
                 'flags':      result.get('flags', []),
@@ -640,16 +818,26 @@ def main():
                 'transcript': transcript,
                 'prospect_intelligence': pi,
                 'rep_behaviours':        rb,
+                'qualifying_assessment': result.get('qualifying_assessment', {}),
+                'broker_conflict':       result.get('broker_conflict', {}),
+                'rapport':               result.get('rapport', {}),
+                'follow_up':             result.get('follow_up', {}),
+                'missed_opportunities':  result.get('missed_opportunities', []),
             }
 
-            # Skip no_answer calls — not worth scoring or logging
-            if outcome == 'no_answer':
-                log(f"  Skipping — no_answer, not logging")
+            # Skip no_answer and gatekeeper calls — not worth logging
+            call_type = result.get('call_type', 'decision_maker')
+            if outcome == 'no_answer' or call_type in ('no_meaningful_conversation',):
+                log(f"  Skipping — {call_type}/{outcome}, not logging")
                 skipped += 1
                 already_done.add(call_id)
                 with open(processed_ids_file, 'a') as f:
                     f.write(call_id + '\n')
                 continue
+
+            # Log gatekeeper calls for intel only (no scoring)
+            if call_type == 'gatekeeper':
+                log(f"  Gatekeeper call — logging intel only, no score")
 
             # Write to Sheet
             log(f"  Writing to Sheet (rep={rep}, outcome={outcome})...")
