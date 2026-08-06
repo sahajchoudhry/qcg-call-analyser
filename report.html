@@ -448,11 +448,36 @@ async function generateCoachingNarrative(s, openaiKey) {
     '}',
   ].join('\n');
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+openaiKey},
-    body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content:prompt}],temperature:0.3,max_tokens:3000}),
-  });
-  if (!res.ok) throw new Error('GPT-4o failed: '+res.status);
+  // Retry with backoff on 429 (rate limit) — the report generator fires one
+  // large GPT-4o call per rep in sequence with no gap between them, which is
+  // enough to trip OpenAI's per-minute limit on the 3rd/4th call even though
+  // each individual request is fine. Respect Retry-After if OpenAI sends one,
+  // otherwise back off exponentially.
+  async function callOpenAIWithRetry(body, openaiKey, maxAttempts) {
+    maxAttempts = maxAttempts || 5;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + openaiKey },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) return res;
+      if (res.status === 429 && attempt < maxAttempts) {
+        const retryAfterHeader = res.headers.get('retry-after');
+        const waitMs = retryAfterHeader ? parseFloat(retryAfterHeader) * 1000 : Math.min(2000 * Math.pow(2, attempt - 1), 20000);
+        console.warn(`Rate limited (attempt ${attempt}/${maxAttempts}) — waiting ${Math.round(waitMs/1000)}s before retry`);
+        await new Promise(r => setTimeout(r, waitMs));
+        continue;
+      }
+      throw new Error('GPT-4o failed: ' + res.status);
+    }
+    throw new Error('GPT-4o failed: rate limited after ' + maxAttempts + ' attempts');
+  }
+
+  const res = await callOpenAIWithRetry(
+    { model:'gpt-4o', messages:[{role:'user',content:prompt}], temperature:0.3, max_tokens:3000 },
+    openaiKey
+  );
   const data=await res.json();
   let raw=data.choices[0].message.content.trim();
   if (raw.startsWith('```')) { raw=raw.split('```')[1]; if(raw.startsWith('json')) raw=raw.slice(4); }
@@ -775,6 +800,9 @@ async function generate() {
       stepRunning(step);
       narratives[rep] = await generateCoachingNarrative(summ, openaiKey);
       stepDone(step);
+      // Small deliberate gap between reps — these are large gpt-4o calls back
+      // to back, this reduces how often the retry logic even needs to fire.
+      if (i < repsToProcess.length - 1) await new Promise(r => setTimeout(r, 1500));
     }
 
     const docStep=6+repsToProcess.length;
