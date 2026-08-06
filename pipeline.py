@@ -588,6 +588,14 @@ def write_to_sheets(payload):
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             result = json.loads(resp.read().decode('utf-8'))
+            # Prove the write actually landed rather than trusting ok:true alone —
+            # this is the only way to catch a stale/misbehaving deployment that
+            # returns success without the data actually reaching the Sheet.
+            log(f"    [diag] doPost response: ok={result.get('ok')} "
+                f"scores_rows={result.get('scores_row_count')} "
+                f"missed_rows={result.get('missed_row_count')} "
+                f"rapport_rows={result.get('rapport_row_count')} "
+                f"version_check={result.get('deployed_version_check', 'MISSING — old deployment!')}")
             return result.get('ok', False)
     except Exception as e:
         log(f"Sheet write warning: {e}")
@@ -779,6 +787,38 @@ def main():
             # Score
             log(f"  Scoring with GPT-4o...")
             result = score_call(transcript)
+
+            # ── SERVER-SIDE CALL-TYPE ENFORCEMENT ──
+            # The prompt asks the model to self-zero dimension scores for
+            # gatekeeper/no_meaningful_conversation calls, but that was
+            # entirely self-enforced — if the model skipped classification
+            # or got it wrong, a call that never reached a decision-maker
+            # could get scored (and coached against) as if it had. This
+            # forces the rule in code instead of trusting the model's
+            # compliance with its own instructions.
+            VALID_CALL_TYPES = {'decision_maker', 'gatekeeper', 'no_meaningful_conversation'}
+            raw_call_type = result.get('call_type', '')
+            if raw_call_type not in VALID_CALL_TYPES:
+                log(f"  WARNING: call_type missing/invalid ('{raw_call_type}') — defaulting to gatekeeper (conservative: don't score rather than score wrongly)")
+                result['call_type'] = 'gatekeeper'
+            if result['call_type'] in ('gatekeeper', 'no_meaningful_conversation'):
+                # Force zero/blank on every field a coaching report would surface —
+                # regardless of what the model actually returned for them.
+                zeroed_dim = {'score': 0, 'rationale': 'Call never reached a decision-maker — not scored.', 'what_would_raise_it': ''}
+                result['dimensions'] = {
+                    'opening': dict(zeroed_dim), 'qualifying': dict(zeroed_dim),
+                    'objection_handling': dict(zeroed_dim), 'questions_asked': dict(zeroed_dim),
+                    'closing': dict(zeroed_dim),
+                }
+                result['overall'] = ''
+                result['qualifying_assessment'] = {}
+                result['broker_conflict'] = {}
+                result['rapport'] = {}
+                result['missed_opportunities'] = []
+                result['flags'] = []
+                result['strength'] = ''
+                result['focus'] = ''
+                result['narrative'] = result.get('narrative', '') or 'Call did not reach a decision-maker — nothing to coach on this call.'
 
             # Match rep
             # Use extension-based rep as ground truth if available
