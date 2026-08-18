@@ -316,7 +316,10 @@ function callRef(callId, scoresById) {
 }
 
 function buildRepSummary(rep, scores, flags, verbatim, narratives, missed, rapport) {
-  const rs = scores.filter(r=>r['Rep']===rep);
+  // Excludes logistics_admin — those are admin/reschedule calls with no
+  // prospecting opportunity, and including them dilutes "calls this period"
+  // and every behaviour percentage that divides by it.
+  const rs = scores.filter(r=>r['Rep']===rep && r['Call Type'] !== 'logistics_admin');
   const fl = flags.filter(r=>r['Rep']===rep);
   const vb = verbatim.filter(r=>r['Rep']===rep);
   const nr = narratives.filter(r=>r['Rep']===rep);
@@ -337,7 +340,9 @@ function buildRepSummary(rep, scores, flags, verbatim, narratives, missed, rappo
   rs.forEach(r=>{ outcomeCounts[r['Outcome']]=(outcomeCounts[r['Outcome']]||0)+1; });
   const behAvg = key => { const yes=rs.filter(r=>r[key]==='Yes').length; return rs.length ? Math.round(yes/rs.length*100) : 0; };
   const overall = parseFloat(avg('Score Overall'));
-  const tier = overall<5?'URGENT':overall<6.5?'MONITOR':'ON TRACK';
+  // Same recalibration as the Aggregation tab's tierF formula — see that
+  // comment for why 5.5/3.5 rather than 6.5/5.
+  const tier = overall<3.5?'URGENT':overall<5.5?'MONITOR':'ON TRACK';
 
   // Decision-driver mismatch calls — a core new signal
   const driverMismatches = rs.filter(r => r['Rep Matched Driver']==='No').map(r => ({
@@ -453,6 +458,14 @@ async function generateCoachingNarrative(s, openaiKey) {
   // enough to trip OpenAI's per-minute limit on the 3rd/4th call even though
   // each individual request is fine. Respect Retry-After if OpenAI sends one,
   // otherwise back off exponentially.
+  //
+  // IMPORTANT: OpenAI returns HTTP 429 for TWO completely different problems —
+  // "you're sending requests too fast" (transient, retrying helps) AND
+  // "you're out of quota/billing credit" (permanent, retrying never helps).
+  // Only the error body distinguishes them (error.type / error.code), so we
+  // must read and surface it rather than just reporting the status code —
+  // otherwise a quota problem looks identical to a rate-limit problem and
+  // burns 5 retries for nothing.
   async function callOpenAIWithRetry(body, openaiKey, maxAttempts) {
     maxAttempts = maxAttempts || 5;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -462,14 +475,27 @@ async function generateCoachingNarrative(s, openaiKey) {
         body: JSON.stringify(body),
       });
       if (res.ok) return res;
+
+      let errBody = null;
+      try { errBody = await res.clone().json(); } catch(e) { /* body wasn't JSON */ }
+      const errType    = errBody?.error?.type || '';
+      const errCode    = errBody?.error?.code || '';
+      const errMessage = errBody?.error?.message || '';
+      const isQuotaError = errType === 'insufficient_quota' || errCode === 'insufficient_quota';
+
+      if (res.status === 429 && isQuotaError) {
+        // Permanent — retrying will never succeed, fail immediately with the
+        // real reason instead of burning through retries pointlessly.
+        throw new Error('OpenAI quota/billing exhausted (insufficient_quota) — this is not a rate limit and will not resolve by retrying. Check billing at platform.openai.com. ' + (errMessage ? 'Detail: ' + errMessage : ''));
+      }
       if (res.status === 429 && attempt < maxAttempts) {
         const retryAfterHeader = res.headers.get('retry-after');
         const waitMs = retryAfterHeader ? parseFloat(retryAfterHeader) * 1000 : Math.min(2000 * Math.pow(2, attempt - 1), 20000);
-        console.warn(`Rate limited (attempt ${attempt}/${maxAttempts}) — waiting ${Math.round(waitMs/1000)}s before retry`);
+        console.warn(`Rate limited (attempt ${attempt}/${maxAttempts}) — waiting ${Math.round(waitMs/1000)}s before retry. Reason: ${errType || errMessage || 'unknown'}`);
         await new Promise(r => setTimeout(r, waitMs));
         continue;
       }
-      throw new Error('GPT-4o failed: ' + res.status);
+      throw new Error('GPT-4o failed: ' + res.status + (errMessage ? ' — ' + errMessage : '') + (errType ? ' (' + errType + ')' : ''));
     }
     throw new Error('GPT-4o failed: rate limited after ' + maxAttempts + ' attempts');
   }
