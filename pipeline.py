@@ -97,12 +97,45 @@ def http_get(url, headers=None):
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode('utf-8'))
 
-def http_post(url, data, headers=None):
+def http_post(url, data, headers=None, max_retries=4):
+    """POST with JSON body. Retries on 429 with backoff — but distinguishes
+    OpenAI's two different 429 causes: rate-limit-exceeded (transient, retry
+    helps) vs insufficient_quota (billing/credit exhausted, retry NEVER
+    helps and will just waste the retry budget while masking the real
+    problem). Surfaces the actual response body on failure instead of just
+    the bare urllib error text, since that body is the only place the two
+    causes are distinguishable.
+    """
     body = json.dumps(data).encode('utf-8')
-    req  = urllib.request.Request(url, data=body, headers=headers or {}, method='POST')
-    req.add_header('Content-Type', 'application/json')
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        return json.loads(resp.read().decode('utf-8'))
+    for attempt in range(1, max_retries + 1):
+        req = urllib.request.Request(url, data=body, headers=headers or {}, method='POST')
+        req.add_header('Content-Type', 'application/json')
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                return json.loads(resp.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
+            err_body_raw = e.read().decode('utf-8', errors='replace')
+            try:
+                err_json = json.loads(err_body_raw)
+            except Exception:
+                err_json = {}
+            err_type = (err_json.get('error') or {}).get('type', '')
+            err_code = (err_json.get('error') or {}).get('code', '')
+            err_msg  = (err_json.get('error') or {}).get('message', '')
+
+            if e.code == 429 and (err_type == 'insufficient_quota' or err_code == 'insufficient_quota'):
+                raise Exception(
+                    f"OpenAI quota/billing exhausted (insufficient_quota) — "
+                    f"this is NOT a rate limit and retrying will not help. "
+                    f"Check billing at platform.openai.com. Detail: {err_msg}"
+                )
+            if e.code == 429 and attempt < max_retries:
+                wait_s = min(3 * (2 ** (attempt - 1)), 30)
+                log(f"    [diag] HTTP 429 (attempt {attempt}/{max_retries}, type={err_type or 'unknown'}) — waiting {wait_s}s before retry")
+                time.sleep(wait_s)
+                continue
+            raise Exception(f"HTTP {e.code}: {e.reason} — {err_msg or err_body_raw[:200]}")
+    raise Exception(f"HTTP request failed after {max_retries} attempts")
 
 # ── 8x8 AUTHENTICATION ────────────────────────────────────────────────────
 
@@ -349,17 +382,43 @@ def transcribe(audio_bytes, filename, content_type):
         f'\r\n--{boundary}--\r\n'
     ).encode()
 
-    req = urllib.request.Request(
-        'https://api.openai.com/v1/audio/transcriptions',
-        data=body,
-        headers={
-            'Authorization': f'Bearer {OPENAI_KEY}',
-            'Content-Type':  f'multipart/form-data; boundary={boundary}',
-        },
-        method='POST'
-    )
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        return resp.read().decode('utf-8').strip()
+    max_retries = 4
+    for attempt in range(1, max_retries + 1):
+        req = urllib.request.Request(
+            'https://api.openai.com/v1/audio/transcriptions',
+            data=body,
+            headers={
+                'Authorization': f'Bearer {OPENAI_KEY}',
+                'Content-Type':  f'multipart/form-data; boundary={boundary}',
+            },
+            method='POST'
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                return resp.read().decode('utf-8').strip()
+        except urllib.error.HTTPError as e:
+            err_body_raw = e.read().decode('utf-8', errors='replace')
+            try:
+                err_json = json.loads(err_body_raw)
+            except Exception:
+                err_json = {}
+            err_type = (err_json.get('error') or {}).get('type', '')
+            err_code = (err_json.get('error') or {}).get('code', '')
+            err_msg  = (err_json.get('error') or {}).get('message', '')
+
+            if e.code == 429 and (err_type == 'insufficient_quota' or err_code == 'insufficient_quota'):
+                raise Exception(
+                    f"OpenAI quota/billing exhausted (insufficient_quota) — "
+                    f"this is NOT a rate limit and retrying will not help. "
+                    f"Check billing at platform.openai.com. Detail: {err_msg}"
+                )
+            if e.code == 429 and attempt < max_retries:
+                wait_s = min(3 * (2 ** (attempt - 1)), 30)
+                log(f"    [diag] Whisper HTTP 429 (attempt {attempt}/{max_retries}, type={err_type or 'unknown'}) — waiting {wait_s}s before retry")
+                time.sleep(wait_s)
+                continue
+            raise Exception(f"HTTP {e.code}: {e.reason} — {err_msg or err_body_raw[:200]}")
+    raise Exception(f"Transcription failed after {max_retries} attempts")
 
 # ── SCORE ─────────────────────────────────────────────────────────────────
 
@@ -367,43 +426,114 @@ SECTOR_KNOWLEDGE = """
 SECTOR CONTEXT (UK care sector — use this to judge whether the rep is actually
 sector-fluent, or just running a generic broker script):
 
-Buying committee: Registered Manager (cares about CQC compliance, staffing,
-day-to-day risk, keeping their registration clean — usually the best
-influence/referral node even when not the final signer). Owner/Director at
-independents (total cost, claims history, personal liability, exit value).
-Group Ops Director at multi-site groups (consistency, risk standardisation
-across the portfolio). Finance Director/CFO at groups (premium spend, budget
-cycle timing). A rep who never works out which of these they're speaking to
-is a red flag.
+PROVIDER TYPES AND WHAT THEY IMPLY: Residential care homes (personal care, no
+nursing — 10-30 beds often independent, 40-80+ bed homes often group-run).
+Nursing homes (registered nurses on site, higher acuity, higher clinical
+risk). Domiciliary/home care (carers visiting people at home — lone working,
+driving between calls, NO premises exposure — a fundamentally different risk
+conversation than a care home). Specialist care (dementia, LD, mental health,
+autism — higher-risk, higher-value). Supported living (tenancy + separate
+care — regulatory/liability lines blur here, good discovery territory).
+Children's residential (separate CQC/Ofsted regulation).
+
+OWNERSHIP STRUCTURE — this changes what "a good call" looks like, judge
+accordingly: Independents (1-3 homes, owner-operator is usually the decision
+maker, short relationship-driven sales cycle, price-sensitive but personal).
+Small-to-mid groups (4-20 homes, often PE-backed, procurement sits with an
+Ops Director or Group FD not the home manager, longer RFP-style cycle — a
+rep spending one call qualifying rather than closing here is doing it right,
+not failing to close). Large corporates (HC-One, Barchester, Care UK etc,
+usually tied to national broker panels — rarely worth prospecting directly
+unless there's a specific in; do not penalise a rep for a short call here).
+Not-for-profit/charity providers (governance-heavy, trustee sign-off, slower
+by nature, not a rep failure).
+
+Buying committee — five roles, each with a different lens:
+Registered Manager (CQC compliance, staffing, day-to-day risk, keeping their
+registration clean — usually the best influence/referral node even when not
+the final signer, since they see incidents first and are personally
+accountable to CQC).
+Owner/Director at independents (total cost, claims history, personal
+liability, exit value of the business).
+Group Operations Director (consistency across homes, risk standardisation,
+CQC ratings portfolio-wide).
+Finance Director/CFO at groups (premium spend, budget cycle timing, renewal
+terms).
+HR/People Director at groups (Employers' Liability claims, staff injury
+trends, agency staff exposure — rarely the first contact but influences the
+EL renewal; a rep who reaches this person and pivots to EL-specific
+questions is showing real sector awareness).
+A rep who never works out which of these they're speaking to is a red flag.
 
 Regulatory drivers that create real urgency: CQC rating (Outstanding / Good /
 Requires Improvement / Inadequate) and date of last inspection — a rating
-change in either direction is a natural renewal-conversation trigger.
-Notifiable events, safeguarding referral volume, and RIDDOR incidents are
-genuine claims-risk indicators, not small talk.
+change in either direction is a natural renewal-conversation trigger (a
+downgrade creates urgency/fear, an upgrade is a moment to revisit terms and
+use the improved rating as leverage in underwriting). CQC's single
+assessment framework (rolled out 2023) replaced periodic inspections with an
+ongoing evidence-based scoring model, raising compliance anxiety generally.
+Notifiable events, safeguarding referral volume, and RIDDOR incidents
+(reportable workplace injuries, relevant to EL) are genuine claims-risk
+indicators, not small talk. DoLS/Liberty Protection Safeguards are relevant
+in LD/dementia settings. Care records are special-category data under
+ICO/data protection — a live, underused cyber-liability angle.
 
 Insurance lines relevant to this sector: Employers' Liability (compulsory —
 manual handling/back injuries from resident transfers is the common claim),
-Public/Products Liability, Medical Malpractice / Care Liability (the
-sector-specific big one — negligence claims from pressure sores, medication
-errors, missed care plan actions — this is QCG's specialist differentiator
-vs generalist brokers), Management Liability/D&O (personal accountability of
-registered managers under CQC), Cyber (care records are special-category
-data, still under-bought — good cross-sell), Property/Business Interruption
-(homes can't just "close" — displacement of residents is a real, expensive
-scenario).
+Public/Products Liability (falls, food safety), Medical Malpractice / Care
+Liability (the sector-specific big one — negligence claims from pressure
+sores, medication errors, missed care plan actions — this is QCG's
+specialist differentiator vs generalist brokers, usually the largest and
+most technical line), Management Liability/D&O (personal accountability of
+registered managers and directors under CQC), Cyber (care records are
+special-category data, ransomware against small providers is rising, still
+under-bought — good cross-sell), Property/Buildings & Contents (fire risk is
+elevated — older buildings, oxygen use, kitchens — often underinsured on
+rebuild cost), Business Interruption (homes can't just "close" —
+displacement of residents is a real, expensive scenario), Motor/Fleet
+(mainly relevant to domiciliary care — named driver vs any driver, business
+use classification), Legal Expenses/HR support (often bundled, relevant
+given high staff turnover and tribunal risk).
 
 Genuine buying signals to listen for: reliance on agency staff (insurers
-price this as elevated risk), National Living Wage pressure squeezing
-margins, a bad recent renewal or slow claims experience with the incumbent,
-M&A/ownership change, a new home opening (clean-slate decision, no
-incumbent inertia), a CQC rating change in either direction.
+price this as elevated risk, and it drives up EL claims frequency), National
+Living Wage pressure squeezing margins (especially on LA-funded vs
+self-funder beds), the gap between LA fee rates and actual cost of care
+(providers feel undervalued, so anything reducing overhead lands well), a
+bad recent renewal or slow claims experience with the incumbent (hardening
+market, fewer specialist insurers — this is where QCG's claims-handling
+positioning is the wedge), M&A/ownership change (new owners review all
+supplier relationships — a real trigger event), a new home opening
+(clean-slate decision, no incumbent inertia), a CQC rating change in either
+direction.
 
-Sector-specific objections and what they actually mean: "we're tied to a
-group panel" (local manager may have zero authority — qualify this early,
-don't waste the call), "never claimed in years" (untested territory —
-reframe around claims handling speed/quality, not just price), "insurance
-is a headache" (opening for a "we do the admin" pitch, not a price pitch).
+Sector-specific objections and the doctrine-correct reframe for each:
+"we're tied to a group panel" (local manager may have zero authority —
+qualify this early, don't waste the call). "never claimed in years"
+(untested territory — reframe around claims handling speed/quality, not
+just price). "insurance is a headache" (opening for a "we handle the admin,
+you keep running the home" pitch, not a price pitch). "CQC rating is
+Requires Improvement, we're focused on fixing that, not insurance" (this is
+actually a STRONG opening if reframed as "a broker who understands care can
+help protect you while you fix it" — a rep who treats this as bad timing and
+backs off has missed the read, not respected it). "we're too small for a
+specialist broker" (specialist care brokers are often cheaper due to panel
+access, not more expensive — worth countering directly with a proof point,
+not just reassurance).
+
+Sector terminology the model should recognise (for judging terminology_error
+and rep sector-fluency): Registered Manager (legally responsible individual
+at a location, registered with CQC). Service user (sector term for a
+resident/client). Notifiable event (legally reportable incident to CQC).
+KLOEs (CQC's old "Key Lines of Enquiry" — Safe/Effective/Caring/
+Responsive/Well-led — now superseded by the single assessment framework's
+quality statements but still used colloquially). DoLS/LPS (Deprivation of
+Liberty Safeguards / Liberty Protection Safeguards). PIR (Provider
+Information Return, a CQC self-assessment document). Fee rate/LA rate (what
+a local authority pays per resident per week, often below true cost of
+care). Voids (unoccupied beds — a financial pressure signal). Dependency
+level/acuity (how much care a resident needs — drives staffing and claims
+risk).
 """
 
 def score_call(transcript):
@@ -449,7 +579,7 @@ def score_call(transcript):
         '  "detected_rep": "full name of QCG rep as heard",',
         '  "detected_outcome": "meeting_booked|follow_up_agreed|not_interested|no_answer|callback_requested",',
         '  "outcome_confidence": "high or low",',
-        '  "call_type": "decision_maker|gatekeeper|no_meaningful_conversation",',
+        '  "call_type": "decision_maker|gatekeeper|no_meaningful_conversation|logistics_admin",',
         '  "overall": 0,',
         '  "dimensions": {',
         '    "opening": {"score":0,"rationale":"specific moment or quote","what_would_raise_it":"the exact thing that would move this up a band, tied to a moment in the call"},',
@@ -507,10 +637,11 @@ def score_call(transcript):
         '',
         f'REP DETECTION: Reps are: {rep_list}',
         'CALL TYPE DETECTION — classify first, this determines how the call is scored:',
-        'decision_maker = rep spoke directly with someone who has authority over insurance decisions (care home manager, owner, director, finance manager). Even if the call was short or ended badly.',
+        'decision_maker = rep spoke directly with someone who has authority over insurance decisions (care home manager, owner, director, finance manager), in a genuine prospecting/qualifying conversation. Even if the call was short or ended badly.',
         'gatekeeper = rep spoke with reception, admin, PA, or anyone who cannot make insurance decisions. Includes calls where rep was asked to call back without reaching the DM.',
         'no_meaningful_conversation = voicemail, automated message, no answer, or under 20 seconds of actual conversation.',
-        'When call_type is gatekeeper or no_meaningful_conversation: set all dimension scores to 0, qualifying_assessment fields to null/unclear, broker_conflict.attempted to false, rapport to empty arrays, missed_opportunities to empty array, and flags to empty array. Only extract prospect_intelligence (renewal date, contact name etc) and outcome — there is nothing to coach on a call that never reached a decision-maker.',
+        'logistics_admin = the ENTIRE call is pure administrative housekeeping with no qualifying opportunity, regardless of who is on the line. This covers: rescheduling/confirming an already-arranged meeting; the DM saying they are not available right now and asking for a callback at a specific later time with zero substantive discussion in between (e.g. "I am not in the office yet, call me back at 3"); a purely factual lookup with no decision-making content (e.g. "which of two renewal dates is correct?" answered by checking a certificate on a wall); sending/confirming a form or document with no discovery attached. The test is not "was a meeting involved" or "did they sound busy" — it is whether the call, as it actually happened, contained ANY point where a qualifying question could realistically have been asked and was not, versus a call that structurally never had that opportunity at all. If the entire transcript is scheduling logistics or a single factual lookup with no room for discovery, use this type even for a decision-maker. Do NOT use this just because a call was short or ended in a soft outcome — a short call where the rep chose not to probe is still decision_maker and should be scored (and coached) accordingly; this type is only for calls where there was structurally nothing to probe.',
+        'When call_type is gatekeeper, no_meaningful_conversation, or logistics_admin: set all dimension scores to 0, qualifying_assessment fields to null/unclear, broker_conflict.attempted to false, rapport to empty arrays, missed_opportunities to empty array, and flags to empty array. Only extract prospect_intelligence (renewal date, contact name etc) and outcome — there is nothing to coach on a call that never reached a decision-maker, or that was never a prospecting call in the first place.',
         '',
         'OUTCOME DETECTION — be very precise:',
         'meeting_booked = a specific day AND time was agreed for a follow-up call or meeting. Must be explicit from both parties. E.g. "Monday at 2pm", "Thursday morning", "next Tuesday at 10". If this happened, use meeting_booked even if the call was otherwise weak.',
@@ -825,15 +956,18 @@ def main():
             # could get scored (and coached against) as if it had. This
             # forces the rule in code instead of trusting the model's
             # compliance with its own instructions.
-            VALID_CALL_TYPES = {'decision_maker', 'gatekeeper', 'no_meaningful_conversation'}
+            VALID_CALL_TYPES = {'decision_maker', 'gatekeeper', 'no_meaningful_conversation', 'logistics_admin'}
             raw_call_type = result.get('call_type', '')
             if raw_call_type not in VALID_CALL_TYPES:
                 log(f"  WARNING: call_type missing/invalid ('{raw_call_type}') — defaulting to gatekeeper (conservative: don't score rather than score wrongly)")
                 result['call_type'] = 'gatekeeper'
-            if result['call_type'] in ('gatekeeper', 'no_meaningful_conversation'):
+            if result['call_type'] in ('gatekeeper', 'no_meaningful_conversation', 'logistics_admin'):
                 # Force zero/blank on every field a coaching report would surface —
                 # regardless of what the model actually returned for them.
-                zeroed_dim = {'score': 0, 'rationale': 'Call never reached a decision-maker — not scored.', 'what_would_raise_it': ''}
+                zero_reason = ('Call never reached a decision-maker — not scored.'
+                                if result['call_type'] != 'logistics_admin'
+                                else 'Purely administrative/reschedule call — no prospecting opportunity, not scored.')
+                zeroed_dim = {'score': 0, 'rationale': zero_reason, 'what_would_raise_it': ''}
                 result['dimensions'] = {
                     'opening': dict(zeroed_dim), 'qualifying': dict(zeroed_dim),
                     'objection_handling': dict(zeroed_dim), 'questions_asked': dict(zeroed_dim),
@@ -904,9 +1038,11 @@ def main():
                     f.write(call_id + '\n')
                 continue
 
-            # Log gatekeeper calls for intel only (no scoring)
+            # Log gatekeeper / reschedule calls for intel only (no scoring)
             if call_type == 'gatekeeper':
                 log(f"  Gatekeeper call — logging intel only, no score")
+            elif call_type == 'logistics_admin':
+                log(f"  Logistics/reschedule call — logging intel only, excluded from prospecting metrics")
 
             # Write to Sheet
             log(f"  Writing to Sheet (rep={rep}, outcome={outcome})...")
