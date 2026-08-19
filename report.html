@@ -92,7 +92,7 @@ body{font-family:'Jost',sans-serif;background:var(--grey);color:var(--text);min-
   </div>
   <div class="header-sep"></div>
   <div class="header-sub">Coaching Reports</div>
-  <div class="header-right"><a class="nav-btn" href="index.html">← Call Analyser</a></div>
+  <div class="header-right"></div>
 </header>
 
 <div class="hero">
@@ -533,11 +533,12 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
   .sec-head h2{font-size:14pt;font-weight:700;color:#fff;letter-spacing:.02em;}
   .sec-head .tag{font-size:9pt;color:rgba(255,255,255,.7);letter-spacing:.06em;text-transform:uppercase;}
   .content{padding:32px 52px;}
-  table{width:100%;border-collapse:collapse;margin:12px 0;}
+  table{width:100%;border-collapse:collapse;margin:12px 0;table-layout:fixed;}
+  table td:first-child, table th:first-child{width:22%;}
   th{background:#202331;color:#fff;padding:8px 12px;font-size:9pt;font-weight:700;text-align:left;letter-spacing:.04em;text-transform:uppercase;}
   td{padding:8px 12px;font-size:10pt;border-bottom:1px solid #E5E7EB;}
   tr:nth-child(even) td{background:#F4F4F4;}
-  .rep-header{background:#2B2E3E;padding:24px 52px;display:flex;align-items:center;justify-content:space-between;}
+  .rep-header{background:#2B2E3E;padding:24px 52px;display:flex;align-items:center;justify-content:space-between;margin-top:36px;border-top:3px solid #AC4B82;}
   .rep-name{font-size:20pt;font-weight:700;color:#fff;}
   .rep-meta{text-align:right;}
   .rep-meta .calls{font-size:22pt;font-weight:700;color:#AC4B82;line-height:1;}
