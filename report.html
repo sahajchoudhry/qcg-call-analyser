@@ -306,6 +306,92 @@ function filterRows(objs, dateFrom, dateTo, rep) {
   });
 }
 
+// Immediately preceding period of the same length, for week-over-week
+// comparison — e.g. current = Aug 13-19 -> previous = Aug 6-12.
+function shiftPeriodBack(dateFrom, dateTo) {
+  const from = new Date(dateFrom), to = new Date(dateTo);
+  const lengthMs = to.getTime() - from.getTime();
+  const prevTo = new Date(from);
+  prevTo.setDate(prevTo.getDate() - 1);
+  const prevFrom = new Date(prevTo.getTime() - lengthMs);
+  const fmt = d => d.toISOString().split('T')[0];
+  return [fmt(prevFrom), fmt(prevTo)];
+}
+
+// Minimum decision_maker calls required in BOTH periods before a trend
+// comparison is shown at all — comparing 1-2 calls against 1-2 calls
+// produces noise dressed up as a trend, not a real signal.
+const MIN_CALLS_FOR_COMPARISON = 3;
+
+function buildComparison(current, previous) {
+  if (!previous || previous.dmCalls < MIN_CALLS_FOR_COMPARISON || current.dmCalls < MIN_CALLS_FOR_COMPARISON) {
+    return {
+      hasSufficientData: false,
+      prevCalls: previous ? previous.dmCalls : 0,
+      currentCalls: current.dmCalls,
+    };
+  }
+  const d = (curKey, prevKey) => {
+    const c = parseFloat(current.scores[curKey]), p = parseFloat(previous.scores[prevKey || curKey]);
+    if (isNaN(c) || isNaN(p)) return null;
+    return Math.round((c - p) * 10) / 10;
+  };
+  return {
+    hasSufficientData: true,
+    prevCalls: previous.dmCalls,
+    currentCalls: current.dmCalls,
+    deltas: {
+      overall: d('overall'), qualifying: d('qualifying'), opening: d('opening'),
+      objections: d('objections'), questions: d('questions'), closing: d('closing'),
+    },
+    meetingsPrev: previous.outcomeCounts['meeting_booked']||0,
+    meetingsCurrent: current.outcomeCounts['meeting_booked']||0,
+  };
+}
+
+// Team-wide vs individual patterns — deterministic, computed from the same
+// flag/behaviour data already collected per rep, not left to GPT to notice
+// or miss. A finding repeated across most of the team is a training-session
+// problem, not five separate coaching conversations independently
+// reinventing the same point.
+const TEAM_PATTERN_THRESHOLD = 0.6; // flag/weak-behaviour present in >=60% of reps
+
+function humanizeFlag(f) {
+  return f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function computeTeamWidePatterns(repSummaries) {
+  const repCount = repSummaries.length;
+  if (repCount < 2) return { flags: [], behaviours: [] };
+
+  const flagRepCounts = {};
+  repSummaries.forEach(s => {
+    Object.keys(s.flagCounts || {}).forEach(f => {
+      if (s.flagCounts[f] > 0) flagRepCounts[f] = (flagRepCounts[f]||0) + 1;
+    });
+  });
+  const teamWideFlags = Object.entries(flagRepCounts)
+    .filter(([f, count]) => count / repCount >= TEAM_PATTERN_THRESHOLD)
+    .sort((a,b) => b[1]-a[1])
+    .map(([f, count]) => ({ flag: f, repCount: count, totalReps: repCount }));
+
+  // Behaviours — only from reps with enough data, so one thin-data rep
+  // doesn't skew what's actually a team pattern.
+  const eligible = repSummaries.filter(s => !s.lowVolume);
+  const behaviourKeys = eligible.length ? Object.keys(eligible[0].behaviours) : [];
+  const teamWideBehaviours = [];
+  behaviourKeys.forEach(k => {
+    const vals = eligible.map(s => s.behaviours[k]).filter(v => typeof v === 'number');
+    if (!vals.length) return;
+    const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
+    const badIfHigh = k === 'genericPitch';
+    const weak = badIfHigh ? avg > 40 : avg < 30;
+    if (weak) teamWideBehaviours.push({ behaviour: k, avgPct: Math.round(avg), badIfHigh });
+  });
+
+  return { flags: teamWideFlags, behaviours: teamWideBehaviours };
+}
+
 // Call reference string — this is what lets Josh actually pull the recording
 // instead of being handed a floating quote with no source.
 function callRef(callId, scoresById) {
@@ -338,7 +424,14 @@ function buildRepSummary(rep, scores, flags, verbatim, narratives, missed, rappo
   fl.forEach(f=>{ flagCounts[f['Flag']]=(flagCounts[f['Flag']]||0)+1; });
   const outcomeCounts={};
   rs.forEach(r=>{ outcomeCounts[r['Outcome']]=(outcomeCounts[r['Outcome']]||0)+1; });
-  const behAvg = key => { const yes=rs.filter(r=>r[key]==='Yes').length; return rs.length ? Math.round(yes/rs.length*100) : 0; };
+  // Denominator restricted to decision_maker calls — same fix as the
+  // Aggregation tab's Section 2. These booleans are only ever populated on
+  // decision_maker calls, so counting gatekeeper/no_meaningful_conversation
+  // calls in rs (already excludes logistics_admin, but not those two) was
+  // diluting every behaviour percentage against calls that could never
+  // show "Yes" in the first place.
+  const rsDM = rs.filter(r => r['Call Type'] === 'decision_maker');
+  const behAvg = key => { const yes=rsDM.filter(r=>r[key]==='Yes').length; return rsDM.length ? Math.round(yes/rsDM.length*100) : 0; };
   const overall = parseFloat(avg('Score Overall'));
   // Same recalibration as the Aggregation tab's tierF formula — see that
   // comment for why 5.5/3.5 rather than 6.5/5.
@@ -383,13 +476,16 @@ function buildRepSummary(rep, scores, flags, verbatim, narratives, missed, rappo
   }).filter(Boolean);
 
   return {
-    rep, tier, calls:rs.length, scores:{
+    rep, tier, calls:rs.length, dmCalls:rsDM.length, lowVolume: rsDM.length < 3, scores:{
       overall:avg('Score Overall'), opening:avg('Score Opening'), qualifying:avg('Score Qualifying'),
       objections:avg('Score Objections'), questions:avg('Score Questions'), closing:avg('Score Closing'),
     },
     flagCounts, outcomeCounts,
     closingAttempts: vb.filter(v=>v['Moment Type']==='closing_attempt').slice(0,5),
-    missedQuestions: vb.filter(v=>v['Moment Type']==='missed_question').slice(0,5),
+    // 'missed_question' verbatim type was retired when missed opportunities
+    // moved to the dedicated MissedOpportunities tab (see missedWithRef
+    // below) — removed here since it always returned empty against the
+    // current schema.
     strongQuestions: vb.filter(v=>v['Moment Type']==='strong_question').slice(0,3),
     recentNarratives: nr.slice(-5).map(n=>n['Narrative']).filter(Boolean),
     brokers: rs.map(r=>r['Current Broker']).filter(v=>v&&v!=='null'&&v!==''),
@@ -403,8 +499,9 @@ function buildRepSummary(rep, scores, flags, verbatim, narratives, missed, rappo
       decisionMaker:behAvg('Identified Decision Maker'),
       consultative:behAvg('Consultative Approach'), genericPitch:behAvg('Generic Pitch'),
     },
-    strengths: rs.map(r=>r['Strength']).filter(Boolean).slice(-3),
-    focuses:   rs.map(r=>r['Focus']).filter(Boolean).slice(-3),
+    // Old per-call Strength/Focus Scores columns — superseded by the
+    // structured strengths/focus_areas GPT now generates directly (see
+    // generateCoachingNarrative), removed here since nothing read them.
     driverMismatches, vagueFollowUps, brokerConflictWins, brokerConflictMisses,
     missedWithRef, rapportBuilt, rapportMissed, improvementNotes,
   };
@@ -420,7 +517,9 @@ async function generateCoachingNarrative(s, openaiKey) {
     'Do NOT centre the report on the numeric scores — they are a secondary trend indicator only. The centre of the report is specific, evidenced behaviour: what was said, on which call, and what a stronger version of that moment would have sounded like.',
     '', 'DATA:',
     `Calls this period: ${s.calls} | Score trend tier: ${s.tier} (informational only, not the headline)`,
+    `Decision-maker calls this period: ${s.dmCalls}${s.lowVolume ? ' — LOW VOLUME, keep every analysis section short (1-2 sentences), hedge explicitly rather than writing a confident multi-sentence pattern from this little evidence, and say plainly that more calls are needed before drawing firm conclusions' : ''}`,
     `Dimension averages (context only): Overall=${s.scores.overall} Opening=${s.scores.opening} Qualifying=${s.scores.qualifying} Objections=${s.scores.objections} Questions=${s.scores.questions} Closing=${s.scores.closing}`,
+    `Trend vs previous equal-length period: ${JSON.stringify(s.comparison || {hasSufficientData:false})}`,
     `Outcomes: ${JSON.stringify(s.outcomeCounts)}`,
     `Flags: ${flagList}`,
     `Qualifying/consultative behaviours (% of calls): ${behList}`,
@@ -438,15 +537,18 @@ async function generateCoachingNarrative(s, openaiKey) {
     `Challenges surfaced: ${s.challenges.slice(0,5).join('; ')||'none'}`,
     '', 'Return ONLY valid JSON:',
     '{',
+    '"tldr":{"headline":"one plain sentence capturing this week\'s overall story for this rep, the single thing to know before reading anything else","lead_with_praise":"one sentence naming the specific thing to open the 1-1 with praising, tied to a call","lead_with_fix":"one sentence naming the single most important thing to raise as needing work, tied to a call"},',
+    '"trend_narrative":"IF comparison.hasSufficientData is true below: 2-3 sentences on what genuinely changed since last period, specific dimensions and behaviours, not just a vague statement that scores went up. IF hasSufficientData is false: return null, do not speculate about a trend from too little data.",',
     '"rep_summary":"4-6 sentences, specific and evidenced, covering the overall pattern across the period — not a generic tone assessment",',
     '"qualifying_analysis":"2-4 sentences on whether the rep is actually establishing Price/Risk/Mentality per QCG doctrine, with call references, or just running through a script",',
     '"broker_conflict_analysis":"2-4 sentences on whether the rep is creating genuine jeopardy with incumbent brokers or just quoting, with call references",',
     '"decision_driver_analysis":"2-4 sentences on whether the rep correctly identifies what matters most to each buyer, with specific mismatch examples and call references if any exist",',
     '"rapport_analysis":"3-5 sentences specifically on rapport — both what is working and what is being left on the table, with call references",',
     '"missed_opportunities_summary":"3-6 sentences synthesising the pattern across the missed-opportunity list — not just repeating them, but naming the underlying habit (e.g. always moving past pain points without probing)",',
-    '"top_strength":"specific strength with quote evidence and call reference",',
-    '"focus_area":"the single most important thing to fix, with a specific moment, quote, call reference, and what score/outcome improvement this would realistically produce",',
-    '"agenda":["6-8 specific 1-1 dialogue prompts as questions, each referencing a specific call or pattern, not generic coaching questions"],',
+    '"strengths":[{"quote":"exact verbatim quote","call_ref":"date + call reference","why_it_works":"1-2 sentences on why this specifically worked, tied to QCG doctrine","how_to_build_on_it":"a concrete next step to extend this strength — a specific technique or situation to apply it to next"}],',
+    '"focus_areas":[{"quote":"exact verbatim quote showing the gap, or a description of the missed moment if no clean quote exists","call_ref":"date + call reference","the_fix":"the SPECIFIC alternative line or action the rep should have taken, phrased exactly as they could say it on the next call, not a general principle","expected_impact":"what score/outcome improvement this realistically produces, stated plainly"}],',
+        'Give 2-3 items each for "strengths" and "focus_areas" \u2014 each from a DIFFERENT call where possible, so the manager has multiple distinct, real examples to raise in the session rather than one anecdote stretched thin. If there genuinely are not 2-3 distinct qualifying examples in the data, give what is actually there rather than inventing more.',
+    '"agenda":["6-8 items the manager can read almost verbatim to the rep in the room, NOT reflective analysis questions about what the rep could theoretically do. Each item must: (1) open by naming the specific call and what happened, e.g. On the call with the named prospect on the given date, when they raised X..., (2) state directly what to do differently, in plain actionable terms, not abstract doctrine language, (3) end with a concrete practice instruction for the next calls, e.g. On your next 3 calls, try asking... or Before you mention price on a call, make sure you have asked... Do not write reflective questions like What strategies could you use to... or How can you better establish... \u2014 those are analysis prompts for a report, not things a manager says out loud in a room with a rep. Write it the way an actual manager would talk."],',
     '"short_term_target":"one measurable, specific target next week tied to the actual gap identified above",',
     '"long_term_goal":"one development goal next month",',
     '"prospect_insight":"one observation about market intelligence gathered from these calls — broker landscape, pricing pressure, CQC patterns"',
@@ -516,6 +618,12 @@ function tierBg(t) { return t==='URGENT'?'#FEE2E2':t==='MONITOR'?'#FEF3C7':'#DCF
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) {
+  // Sort worst-first (URGENT, then MONITOR, then ON TRACK, then No data) so
+  // the manager's attention lands on whoever needs it most, both in the
+  // Team Overview table and in the order the full per-rep sections appear.
+  const TIER_ORDER = {'URGENT':0, 'MONITOR':1, 'ON TRACK':2, 'No data':3};
+  repSummaries = repSummaries.slice().sort((a,b) => (TIER_ORDER[a.tier] ?? 9) - (TIER_ORDER[b.tier] ?? 9));
+
   const periodLabel = period==='week'?'Week ending '+dateTo:dateFrom+' to '+dateTo;
   let html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>QCG Coaching Report — ${periodLabel}</title>
@@ -571,6 +679,17 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
   .box-focus{background:#FEF3C7;}.box-focus .box-label{color:#D97706;}
   .box-summary{background:#F5EBF1;}.box-summary .box-label{color:#AC4B82;}
   .box-target{background:#F4F4F4;border:1px solid #E5E7EB;}.box-target .box-label{color:#6B7280;}
+  .tldr-box{background:#202331;border-radius:6px;padding:16px 20px;margin-bottom:4px;}
+  .zone-header{font-size:11pt;font-weight:700;color:#202331;text-transform:uppercase;letter-spacing:.06em;margin:24px 0 10px;padding-top:16px;border-top:2px solid #202331;}
+  .zone-evidence{background:#FAFAFA;border-radius:6px;padding:14px 18px 4px;margin-bottom:8px;}
+  .zone-evidence .verbatim{font-size:9pt;}
+  .zone-session-guide{background:#F5EBF1;border:1.5px solid #D19BB9;border-radius:8px;padding:18px 20px 4px;margin-bottom:8px;}
+  .tldr-box .tldr-headline{color:#fff;font-size:12pt;font-weight:700;margin-bottom:10px;}
+  .tldr-box .tldr-row{display:flex;gap:8px;font-size:10pt;margin-bottom:4px;}
+  .tldr-box .tldr-row .tag{flex-shrink:0;font-weight:700;font-size:8pt;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:3px;}
+  .tldr-box .tldr-row.praise .tag{background:#DCFCE7;color:#16A34A;}
+  .tldr-box .tldr-row.fix .tag{background:#FEF3C7;color:#D97706;}
+  .tldr-box .tldr-row span:last-child{color:#E5E7EB;}
   .verbatim{border-left:3px solid #AC4B82;padding:10px 14px;margin:8px 0;background:#F5EBF1;border-radius:0 4px 4px 0;}
   .verbatim .vtype{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#AC4B82;margin-bottom:3px;}
   .verbatim .vref{font-size:8pt;color:#6B7280;margin-bottom:4px;font-family:monospace;}
@@ -602,7 +721,7 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
   <div class="content"><table class="team-table">
     <tr><th>Rep</th><th>Calls</th><th>Overall</th><th>Qualifying</th><th>Opening</th><th>Objections</th><th>Questions</th><th>Closing</th><th>Meetings</th><th>Tier</th></tr>`;
   repSummaries.forEach(s => {
-    const meetings = s.outcomeCounts['Meeting booked']||0;
+    const meetings = s.outcomeCounts['meeting_booked']||0;
     html += `<tr><td><strong>${s.rep}</strong></td><td style="text-align:center">${s.calls}</td>
       <td style="text-align:center;font-weight:700;color:${scoreColor(s.scores.overall)}">${s.scores.overall}</td>
       <td style="text-align:center;color:${scoreColor(s.scores.qualifying)}">${s.scores.qualifying}</td>
@@ -615,6 +734,25 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
   });
   html += `</table><p style="font-size:9pt;color:#6B7280;margin-top:8px">Scores are a trend indicator only. The detail that drives coaching is in each rep's section below — every point is tied to the specific call it came from so it can be pulled and reviewed directly.</p></div>`;
 
+  // Team-wide patterns — shown once, up front, so a shared issue reads as
+  // one training-session problem rather than getting silently repeated as
+  // five separate individual findings further down.
+  const teamPatterns = computeTeamWidePatterns(repSummaries);
+  if (teamPatterns.flags.length || teamPatterns.behaviours.length) {
+    html += `<div class="content" style="padding-top:0">
+      <div style="background:#F5EBF1;border:1px solid #D19BB9;border-radius:6px;padding:16px 20px">
+        <div style="font-size:10pt;font-weight:700;color:#AC4B82;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Team-Wide Patterns — Not Individual Issues</div>
+        <div style="font-size:9.5pt;color:#202331;margin-bottom:10px">These showed up across most of the team, not just one rep. Worth raising in a team session rather than five separate 1-1 conversations reinventing the same point.</div>`;
+    teamPatterns.flags.forEach(f => {
+      html += `<div style="font-size:9.5pt;margin-bottom:4px">&#8226; <b>${humanizeFlag(f.flag)}</b> — present in ${f.repCount} of ${f.totalReps} reps</div>`;
+    });
+    teamPatterns.behaviours.forEach(b => {
+      const label = humanizeFlag(b.behaviour.replace(/([A-Z])/g, ' $1').trim());
+      html += `<div style="font-size:9.5pt;margin-bottom:4px">&#8226; <b>${label}</b> — team average ${b.avgPct}% ${b.badIfHigh ? '(too high)' : '(too low)'}</div>`;
+    });
+    html += `</div></div>`;
+  }
+
   repSummaries.forEach((s) => {
     const n = narratives[s.rep]||{};
     const topFlags = Object.entries(s.flagCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
@@ -625,6 +763,45 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
       <div><span class="tier-badge" style="background:${tierBg(s.tier)};color:${tierColor(s.tier)}">${s.tier}</span></div></div>
       <div class="rep-meta"><div class="calls">${s.calls}</div><div class="calls-label">Calls this period</div></div>
     </div><div class="accent-bar"></div><div class="content">`;
+
+    // Low-volume warning — deterministic, not left to the model to notice.
+    // Below the threshold, findings are too thin to state with full
+    // confidence and the report should say that plainly rather than
+    // manufacture a confident-sounding analysis from 1-2 calls.
+    if (s.lowVolume) {
+      html += `<div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:6px;padding:10px 16px;margin-bottom:12px;font-size:9.5pt;color:#92400E"><b>Limited data this period</b> — only ${s.dmCalls} decision-maker call${s.dmCalls===1?'':'s'}. Treat the findings below as directional, not conclusive.</div>`;
+    }
+
+    // TL;DR — headline first, before any deep-dive section, so the manager
+    // gets the story in ten seconds rather than having to read the whole
+    // report to find it.
+    if (n.tldr && n.tldr.headline) {
+      html += `<div class="tldr-box">
+        <div class="tldr-headline">${esc(n.tldr.headline)}</div>
+        ${n.tldr.lead_with_praise ? `<div class="tldr-row praise"><span class="tag">Open with</span><span>${esc(n.tldr.lead_with_praise)}</span></div>` : ''}
+        ${n.tldr.lead_with_fix ? `<div class="tldr-row fix"><span class="tag">Then raise</span><span>${esc(n.tldr.lead_with_fix)}</span></div>` : ''}
+      </div>`;
+    }
+
+    // Trend vs previous period — real numbers computed in JS (not trusted
+    // to GPT arithmetic), narrative interpretation from GPT only when there
+    // was actually enough prior data to say something meaningful.
+    if (s.comparison && s.comparison.hasSufficientData) {
+      const c = s.comparison;
+      const arrow = v => v > 0 ? '&#9650;' : v < 0 ? '&#9660;' : '&#8213;';
+      const color = v => v > 0 ? '#16A34A' : v < 0 ? '#DC2626' : '#6B7280';
+      const dimRow = (label, val) => `<div style="text-align:center"><div style="font-size:8pt;color:#6B7280;text-transform:uppercase;letter-spacing:.04em">${label}</div><div style="font-size:13pt;font-weight:700;color:${color(val)}">${arrow(val)} ${val>0?'+':''}${val}</div></div>`;
+      html += `<div class="section-label">Trend vs Previous Period (${c.prevCalls} calls then, ${c.currentCalls} now)</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;background:#F4F4F4;border-radius:6px;padding:14px 10px;margin-bottom:12px">
+        ${dimRow('Overall', c.deltas.overall)}${dimRow('Opening', c.deltas.opening)}${dimRow('Qualifying', c.deltas.qualifying)}${dimRow('Objections', c.deltas.objections)}${dimRow('Questions', c.deltas.questions)}${dimRow('Closing', c.deltas.closing)}
+      </div>
+      <div style="font-size:9pt;color:#6B7280;margin-bottom:8px">Meetings booked: ${c.meetingsPrev} then &#8594; ${c.meetingsCurrent} now</div>`;
+      if (n.trend_narrative) {
+        html += `<div class="box box-target" style="margin-bottom:16px"><div class="box-text">${esc(n.trend_narrative)}</div></div>`;
+      }
+    } else if (s.comparison) {
+      html += `<div style="font-size:9pt;color:#6B7280;font-style:italic;margin-bottom:12px">Not enough calls in the prior period (${s.comparison.prevCalls} decision-maker calls) to compare trends reliably — needs at least ${typeof MIN_CALLS_FOR_COMPARISON !== 'undefined' ? MIN_CALLS_FOR_COMPARISON : 3} in both periods.</div>`;
+    }
 
     // Rep summary narrative — long form
     if (n.rep_summary) {
@@ -648,6 +825,8 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
           <div class="vquote" style="font-style:normal">${esc(imp.note)}</div></div>`;
       });
     }
+
+    html += `<div class="zone-header">Coaching Analysis</div>`;
 
     // Qualifying analysis (Price / Risk / Mentality doctrine)
     if (n.qualifying_analysis) {
@@ -701,18 +880,29 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
       });
     }
 
+    html += `<div class="zone-header">Supporting Evidence</div><div class="zone-evidence">`;
+
     // Missed opportunities — the centrepiece
     if (n.missed_opportunities_summary) {
       html += `<div class="section-label">Missed Opportunities — Pattern Summary</div><div class="box box-focus"><div class="box-text">${esc(n.missed_opportunities_summary)}</div></div>`;
     }
     if (s.missedWithRef.length) {
-      html += `<div class="section-label">Missed Opportunities — Full Detail</div>`;
-      s.missedWithRef.forEach(m => {
+      // Capped at 6 — comprehensive data still lives in the Sheet, but a
+      // report with every instance from a busy week becomes unreadable and
+      // a manager can't productively raise 15 things in one sitting anyway.
+      const MISSED_CAP = 6;
+      const missedShown = s.missedWithRef.slice(0, MISSED_CAP);
+      const missedRemaining = s.missedWithRef.length - missedShown.length;
+      html += `<div class="section-label">Missed Opportunities — Detail${missedRemaining > 0 ? ` (${missedShown.length} of ${s.missedWithRef.length})` : ''}</div>`;
+      missedShown.forEach(m => {
         html += `<div class="verbatim"><div class="vtype">${esc(m.category||'')}</div>
           <div class="vref">Call: ${esc(m.ref)}</div>
           <div class="vquote">"${esc(m.quote)}"</div>
           <div class="vsuggest"><b>Better line:</b> ${esc(m.suggested)}</div></div>`;
       });
+      if (missedRemaining > 0) {
+        html += `<div style="font-size:9pt;color:#6B7280;margin:6px 0 12px">+ ${missedRemaining} more similar instances this period — full detail in the MissedOpportunities tab.</div>`;
+      }
     }
 
     // Vague follow-ups — explicitly not credited
@@ -727,7 +917,11 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
     // Flags
     if (topFlags.length) {
       html += `<div class="section-label">Behavioural Flags This Period</div><div style="margin-bottom:12px">`;
-      topFlags.forEach(([f,c]) => { html += `<span class="flag ${negFlagSet.has(f)?'flag-neg':'flag-pos'}">${f} (${c})</span>`; });
+      const teamWideFlagNames = new Set(teamPatterns.flags.map(tf => tf.flag));
+      topFlags.forEach(([f,c]) => {
+        const isTeamWide = teamWideFlagNames.has(f);
+        html += `<span class="flag ${negFlagSet.has(f)?'flag-neg':'flag-pos'}">${f} (${c})${isTeamWide ? ' &#183; team-wide' : ''}</span>`;
+      });
       html += `</div>`;
     }
 
@@ -751,11 +945,33 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
       s.closingAttempts.forEach(v => { html += `<div class="verbatim"><div class="vtype">Closing attempt</div><div class="vquote">"${esc(v['Quote'])}"</div></div>`; });
     }
 
-    // Strength / Focus
-    html += `<div class="two-col" style="margin-top:14px">
-      <div class="box box-strength"><div class="box-label">Top Strength</div><div class="box-text">${esc(n.top_strength||'')}</div></div>
-      <div class="box box-focus"><div class="box-label">Focus Area</div><div class="box-text">${esc(n.focus_area||'')}</div></div>
-    </div>`;
+    html += `</div>`; // close zone-evidence
+    html += `<div class="zone-header">1-1 Session Guide</div><div class="zone-session-guide">`;
+
+    // Strengths / Focus areas — now multiple each, with quote, call ref,
+    // and a concrete next step, not one paragraph apiece.
+    if ((n.strengths||[]).length) {
+      html += `<div class="section-label">Strengths</div>`;
+      (n.strengths||[]).forEach(st => {
+        html += `<div class="verbatim" style="border-left-color:#16A34A;background:#F0FDF4">
+          <div class="vref">Call: ${esc(st.call_ref||'')}</div>
+          <div class="vquote">"${esc(st.quote||'')}"</div>
+          <div class="vsuggest" style="color:#16A34A"><b>Why it works:</b> ${esc(st.why_it_works||'')}</div>
+          <div class="vsuggest" style="color:#16A34A"><b>Build on it:</b> ${esc(st.how_to_build_on_it||'')}</div>
+        </div>`;
+      });
+    }
+    if ((n.focus_areas||[]).length) {
+      html += `<div class="section-label">Focus Areas</div>`;
+      (n.focus_areas||[]).forEach(fa => {
+        html += `<div class="verbatim">
+          <div class="vref">Call: ${esc(fa.call_ref||'')}</div>
+          <div class="vquote">"${esc(fa.quote||'')}"</div>
+          <div class="vsuggest"><b>The fix:</b> ${esc(fa.the_fix||'')}</div>
+          <div class="vsuggest"><b>Expected impact:</b> ${esc(fa.expected_impact||'')}</div>
+        </div>`;
+      });
+    }
 
     // Agenda
     if ((n.agenda||[]).length) {
@@ -767,6 +983,8 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
       <div class="box box-target"><div class="box-label">Short-term target — next week</div><div class="box-text">${esc(n.short_term_target||'')}</div></div>
       <div class="box box-target"><div class="box-label">Longer-term goal — next month</div><div class="box-text">${esc(n.long_term_goal||'')}</div></div>
     </div>`;
+
+    html += `</div>`; // close zone-session-guide
 
     if (n.prospect_insight) {
       html += `<div class="section-label">Market Intelligence</div><div class="box box-summary"><div class="box-text">${esc(n.prospect_insight)}</div></div>`;
@@ -809,7 +1027,8 @@ async function generate() {
     const filteredScores = filterRows(scoreRows, dateFrom, dateTo, repFilter);
     stepDone(0);
     stepRunning(1);
-    const flagRows = filterRows(rowsToObjects(await fetchTabCSV('Flags')), dateFrom, dateTo, repFilter);
+    const rawFlagRows = rowsToObjects(await fetchTabCSV('Flags'));
+    const flagRows = filterRows(rawFlagRows, dateFrom, dateTo, repFilter);
     stepDone(1);
     stepRunning(2);
     const verbRows = filterRows(rowsToObjects(await fetchTabCSV('Verbatim')), dateFrom, dateTo, repFilter);
@@ -833,6 +1052,20 @@ async function generate() {
 
     const repSummaries = repsToProcess.map(rep=>buildRepSummary(rep,filteredScores,flagRows,verbRows,narrRows,missedRows,rapportRows)).filter(Boolean);
     if (!repSummaries.length) { showStatus('No data found for the selected rep(s) in this date range.','error'); return; }
+
+    // Week-over-week comparison — reuses scoreRows/rawFlagRows already
+    // fetched above (both are the FULL unfiltered tabs), just re-filtered
+    // against the immediately preceding equal-length period. Genuinely no
+    // extra network request.
+    const [prevFrom, prevTo] = shiftPeriodBack(dateFrom, dateTo);
+    const prevFilteredScores = filterRows(scoreRows, prevFrom, prevTo, repFilter);
+    const prevFlagRows       = filterRows(rawFlagRows, prevFrom, prevTo, repFilter);
+    const prevSummaries = repsToProcess
+      .map(rep => buildRepSummary(rep, prevFilteredScores, prevFlagRows, [], [], [], []))
+      .filter(Boolean);
+    const prevByRep = {};
+    prevSummaries.forEach(ps => { prevByRep[ps.rep] = ps; });
+    repSummaries.forEach(s => { s.comparison = buildComparison(s, prevByRep[s.rep]); });
 
     const narratives={};
     for (let i=0;i<repsToProcess.length;i++) {
