@@ -982,6 +982,67 @@ def main():
                 result['strength'] = ''
                 result['focus'] = ''
                 result['narrative'] = result.get('narrative', '') or 'Call did not reach a decision-maker — nothing to coach on this call.'
+            else:
+                # ── SERVER-SIDE POSITIVE FLAG DERIVATION ──
+                # These flags were being left out of the model's freeform
+                # `flags` list far more often than the matching structured
+                # boolean/array fields said they should be true — e.g.
+                # rep_behaviours.mentioned_care_specialism=True on calls
+                # where specialism_established never made it into flags[].
+                # Same judgment tracked in two places, only one of them
+                # reliable. Deriving these directly from the structured
+                # fields (which the model fills consistently because they're
+                # forced true/false, not optional list membership) removes
+                # that inconsistency rather than hoping the model remembers
+                # to duplicate the judgment into the list too.
+                flags = set(result.get('flags', []))
+                rb = result.get('rep_behaviours', {}) or {}
+                qa = result.get('dimensions', {}).get('questions_asked', {}) or {}
+                rapport = result.get('rapport', {}) or {}
+                closing_dim = result.get('dimensions', {}).get('closing', {}) or {}
+
+                if rb.get('mentioned_care_specialism'):
+                    flags.add('specialism_established')
+                if rb.get('consultative_approach'):
+                    flags.add('consultative_approach')
+                if rb.get('asked_claims_history'):
+                    flags.add('claims_test_asked')
+                if rb.get('mentioned_claims_team') or rb.get('mentioned_cqc_support'):
+                    flags.add('credibility_established')
+                if (rapport.get('signals_built') or []):
+                    flags.add('rapport_established')
+                if (qa.get('strong_questions') or []):
+                    flags.add('strong_questions_asked')
+                if isinstance(closing_dim.get('score'), (int, float)) and closing_dim.get('score', 0) >= 8:
+                    flags.add('effective_close')
+
+                # Closed-vocabulary check — the model occasionally invents
+                # plausible-sounding flag names outside the defined set
+                # (e.g. 'broker_conflict_not_asked' instead of the real
+                # 'current_broker_not_asked'). Anything invented used to
+                # flow straight through to the Sheet, where it then defaulted
+                # to rendering as a POSITIVE flag downstream since it matched
+                # no recognised name in either list — actively misrepresenting
+                # a miss as a win. Drop anything outside the known set here,
+                # at the source, rather than relying on every downstream
+                # consumer to catch it.
+                VALID_FLAGS = {
+                    'single_close_attempt', 'no_close_attempt', 'terminology_error',
+                    'missed_buying_signal', 'pain_point_not_leveraged',
+                    'failed_to_handle_objection', 'no_permission_to_talk',
+                    'generic_pitch', 'renewal_date_not_asked', 'current_broker_not_asked',
+                    'vague_follow_up',
+                    'rapport_established', 'strong_questions_asked', 'effective_close',
+                    'buying_signal_identified', 'credibility_established',
+                    'specialism_established', 'claims_test_asked', 'consultative_approach',
+                    'broker_conflict_created',
+                }
+                invalid_flags = flags - VALID_FLAGS
+                if invalid_flags:
+                    log(f"  WARNING: dropping invented flag(s) not in the defined set: {sorted(invalid_flags)}")
+                    flags = flags & VALID_FLAGS
+
+                result['flags'] = list(flags)
 
             # Match rep
             # Use extension-based rep as ground truth if available
