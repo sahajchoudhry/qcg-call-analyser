@@ -393,12 +393,29 @@ function computeTeamWidePatterns(repSummaries) {
 }
 
 // Call reference string — this is what lets Josh actually pull the recording
-// instead of being handed a floating quote with no source.
+// instead of being handed a floating quote with no source. Previously showed
+// the raw storage filename (ipbx:...:1786963975900-...:E.mp3), completely
+// illegible at a glance. Now shows date + formatted phone number, which is
+// something a manager can actually recognise and act on in a live meeting.
+// Falls back to the filename only if no number is on record at all.
+function formatUKNumber(raw) {
+  const digits = (raw || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('44') && digits.length >= 11) {
+    return '+44 ' + digits.slice(2, 6) + ' ' + digits.slice(6);
+  }
+  if (digits.startsWith('0') && digits.length >= 10) {
+    return digits.slice(0, 5) + ' ' + digits.slice(5);
+  }
+  return '+' + digits;
+}
+
 function callRef(callId, scoresById) {
   const s = scoresById[callId];
   if (!s) return callId || 'unknown call';
   const dateStr = s['Date'] ? s['Date'].split(' ')[0] : 'unknown date';
-  return `${dateStr} · ${s['Filename'] || callId}`;
+  const number = formatUKNumber(s['Prospect Number']);
+  return number ? `${dateStr} · ${number}` : `${dateStr} · ${s['Filename'] || callId}`;
 }
 
 function buildRepSummary(rep, scores, flags, verbatim, narratives, missed, rapport) {
@@ -437,8 +454,11 @@ function buildRepSummary(rep, scores, flags, verbatim, narratives, missed, rappo
   // comment for why 5.5/3.5 rather than 6.5/5.
   const tier = overall<3.5?'URGENT':overall<5.5?'MONITOR':'ON TRACK';
 
-  // Decision-driver mismatch calls — a core new signal
-  const driverMismatches = rs.filter(r => r['Rep Matched Driver']==='No').map(r => ({
+  // Decision-driver mismatch calls — a core new signal. Excludes 'unclear'
+  // driver readings — you can't fault a rep for mismatching a preference
+  // that was never determined, and "buyer cared about unclear" reads as a
+  // grammar bug rather than a real finding.
+  const driverMismatches = rs.filter(r => r['Rep Matched Driver']==='No' && r['Decision Driver'] && r['Decision Driver'] !== 'unclear').map(r => ({
     callId: r['Call ID'], ref: callRef(r['Call ID'], scoresById),
     driver: r['Decision Driver'], evidence: r['Decision Driver Evidence'], note: r['Driver Mismatch Note'],
   }));
@@ -547,7 +567,8 @@ async function generateCoachingNarrative(s, openaiKey) {
     '"missed_opportunities_summary":"3-6 sentences synthesising the pattern across the missed-opportunity list — not just repeating them, but naming the underlying habit (e.g. always moving past pain points without probing)",',
     '"strengths":[{"quote":"exact verbatim quote","call_ref":"date + call reference","why_it_works":"1-2 sentences on why this specifically worked, tied to QCG doctrine","how_to_build_on_it":"a concrete next step to extend this strength — a specific technique or situation to apply it to next"}],',
     '"focus_areas":[{"quote":"exact verbatim quote showing the gap, or a description of the missed moment if no clean quote exists","call_ref":"date + call reference","the_fix":"the SPECIFIC alternative line or action the rep should have taken, phrased exactly as they could say it on the next call, not a general principle","expected_impact":"what score/outcome improvement this realistically produces, stated plainly"}],',
-        'Give 2-3 items each for "strengths" and "focus_areas" \u2014 each from a DIFFERENT call where possible, so the manager has multiple distinct, real examples to raise in the session rather than one anecdote stretched thin. If there genuinely are not 2-3 distinct qualifying examples in the data, give what is actually there rather than inventing more.',
+        'CRITICAL: a "quote" field must be actual words spoken BY THE REP OR PROSPECT on the call, nothing else. Some of the data above includes system-generated notes describing a call (e.g. text saying a commitment was soft or unmeasurable) \u2014 that is commentary written by the analysis system, NOT something anyone said out loud. Never put system commentary in a quote field. If you cannot find a genuine spoken quote for a point, use the description field instead and say so, do not fabricate or misattribute one.',
+        'If low volume (see the decision-maker call count above): AT MOST 1 item each for "strengths" and "focus_areas", and AT MOST 2 items for "agenda" \u2014 there is not enough evidence for more, and padding it out would overstate confidence. Otherwise, give 2-3 items each for "strengths" and "focus_areas" \u2014 each from a DIFFERENT call where possible, so the manager has multiple distinct, real examples to raise in the session rather than one anecdote stretched thin. If there genuinely are not enough distinct qualifying examples in the data, give what is actually there rather than inventing more.',
     '"agenda":["6-8 items the manager can read almost verbatim to the rep in the room, NOT reflective analysis questions about what the rep could theoretically do. Each item must: (1) open by naming the specific call and what happened, e.g. On the call with the named prospect on the given date, when they raised X..., (2) state directly what to do differently, in plain actionable terms, not abstract doctrine language, (3) end with a concrete practice instruction for the next calls, e.g. On your next 3 calls, try asking... or Before you mention price on a call, make sure you have asked... Do not write reflective questions like What strategies could you use to... or How can you better establish... \u2014 those are analysis prompts for a report, not things a manager says out loud in a room with a rep. Write it the way an actual manager would talk."],',
     '"short_term_target":"one measurable, specific target next week tied to the actual gap identified above",',
     '"long_term_goal":"one development goal next month",',
@@ -612,7 +633,10 @@ async function generateCoachingNarrative(s, openaiKey) {
   return JSON.parse(raw.trim());
 }
 
-function scoreColor(s) { const n=parseFloat(s); return n>=7?'#16A34A':n>=5?'#D97706':'#DC2626'; }
+// Same 3.5/5.5 boundaries as the tier recalibration — this was still using
+// the old 5/7 thresholds, which made almost every score render alarm-red
+// even for reps sitting at a merely-mediocre MONITOR tier, not URGENT.
+function scoreColor(s) { const n=parseFloat(s); return n>=5.5?'#16A34A':n>=3.5?'#D97706':'#DC2626'; }
 function tierColor(t) { return t==='URGENT'?'#DC2626':t==='MONITOR'?'#D97706':'#16A34A'; }
 function tierBg(t) { return t==='URGENT'?'#FEE2E2':t==='MONITOR'?'#FEF3C7':'#DCFCE7'; }
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -707,7 +731,7 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
   .report-footer{background:#202331;padding:14px 52px;display:flex;align-items:center;justify-content:space-between;}
   .report-footer .fl{font-size:9pt;color:rgba(255,255,255,.4);}
   .flag{font-size:8pt;font-weight:700;padding:2px 8px;border-radius:3px;display:inline-block;margin:2px;font-family:monospace;}
-  .flag-neg{background:#FEE2E2;color:#DC2626;}.flag-pos{background:#DCFCE7;color:#16A34A;}
+  .flag-neg{background:#FEE2E2;color:#DC2626;}.flag-pos{background:#DCFCE7;color:#16A34A;}.flag-unknown{background:#F1F5F9;color:#64748B;}
   @media print{body{background:#fff;}.page{max-width:100%;}.page-break{page-break-before:always;}}
 </style></head><body><div class="page">`;
 
@@ -757,6 +781,12 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
     const n = narratives[s.rep]||{};
     const topFlags = Object.entries(s.flagCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
     const negFlagSet = new Set(['single_close_attempt','no_close_attempt','terminology_error','missed_buying_signal','pain_point_not_leveraged','failed_to_handle_objection','no_permission_to_talk','generic_pitch','renewal_date_not_asked','current_broker_not_asked','vague_follow_up']);
+    // Closed vocabulary check — the model occasionally invents plausible-
+    // sounding flag names outside the defined set (e.g. 'broker_conflict_not_asked'
+    // instead of 'current_broker_not_asked'). An unrecognised flag used to
+    // silently default to green/positive, which actively misrepresents a
+    // miss as a win. Unrecognised flags now render neutral grey instead.
+    const posFlagSet = new Set(['rapport_established','strong_questions_asked','effective_close','buying_signal_identified','credibility_established','specialism_established','claims_test_asked','consultative_approach','broker_conflict_created']);
 
     html += `<div class="page-break">
     <div class="rep-header"><div><div class="rep-name">${s.rep}</div>
@@ -817,6 +847,12 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
     html += `</div>`;
 
     // What would raise the lowest score per dimension — the actionable delta
+    // Gated structurally, not just by prompt instruction — a soft
+    // instruction to 'keep it short' was still producing a full four-box
+    // analysis plus a six-item agenda from a single call. Below the
+    // threshold, the deep-dive zone literally cannot render; a compact
+    // honest fallback shows instead.
+    if (!s.lowVolume) {
     if (s.improvementNotes.length) {
       html += `<div class="section-label">Specifically, What Moves These Scores Up</div>`;
       s.improvementNotes.forEach(imp => {
@@ -839,7 +875,7 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
     }
     if (s.driverMismatches.length) {
       s.driverMismatches.forEach(m => {
-        html += `<div class="verbatim"><div class="vtype">Driver mismatch — buyer cared about ${esc(m.driver)}</div>
+        html += `<div class="verbatim"><div class="vtype">Driver mismatch — buyer cared about ${esc(humanizeFlag(m.driver).toLowerCase())}</div>
           <div class="vref">Call: ${esc(m.ref)}</div>
           <div class="vquote">"${esc(m.evidence)}"</div>
           <div class="vsuggest"><b>What happened instead:</b> ${esc(m.note)}</div></div>`;
@@ -878,6 +914,9 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
       s.rapportMissed.forEach(r => {
         html += `<div class="verbatim"><div class="vref">Call: ${esc(r.ref)}</div><div class="vquote">"${esc(r.quote)}"</div><div class="vsuggest">${esc(r.detail)}</div></div>`;
       });
+    }
+    } else {
+      html += `<div class="box box-target" style="margin-bottom:12px"><div class="box-text"><b>Not enough calls for a full breakdown.</b> With only ${s.dmCalls} decision-maker call${s.dmCalls===1?'':'s'} this period, a dimension-by-dimension analysis would be reading too much into too little. Once there are more calls, the full Coaching Analysis will appear here.</div></div>`;
     }
 
     html += `<div class="zone-header">Supporting Evidence</div><div class="zone-evidence">`;
@@ -920,7 +959,8 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
       const teamWideFlagNames = new Set(teamPatterns.flags.map(tf => tf.flag));
       topFlags.forEach(([f,c]) => {
         const isTeamWide = teamWideFlagNames.has(f);
-        html += `<span class="flag ${negFlagSet.has(f)?'flag-neg':'flag-pos'}">${f} (${c})${isTeamWide ? ' &#183; team-wide' : ''}</span>`;
+        const flagClass = negFlagSet.has(f) ? 'flag-neg' : posFlagSet.has(f) ? 'flag-pos' : 'flag-unknown';
+        html += `<span class="flag ${flagClass}">${f} (${c})${isTeamWide ? ' &#183; team-wide' : ''}</span>`;
       });
       html += `</div>`;
     }
