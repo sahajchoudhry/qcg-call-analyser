@@ -415,7 +415,13 @@ function callRef(callId, scoresById) {
   if (!s) return callId || 'unknown call';
   const dateStr = s['Date'] ? s['Date'].split(' ')[0] : 'unknown date';
   const number = formatUKNumber(s['Prospect Number']);
-  return number ? `${dateStr} · ${number}` : `${dateStr} · ${s['Filename'] || callId}`;
+  if (number) return `${dateStr} · ${number}`;
+  // Filename fallback only if it looks like an actual readable filename, not
+  // an internal call ID/UUID — otherwise that's just the same illegibility
+  // problem in a different shape. A plain date beats a raw system ID.
+  const filename = s['Filename'] || '';
+  const looksLikeRealFilename = filename && !filename.startsWith('auto_') && filename.length < 60;
+  return looksLikeRealFilename ? `${dateStr} · ${filename}` : dateStr;
 }
 
 function buildRepSummary(rep, scores, flags, verbatim, narratives, missed, rapport) {
@@ -534,6 +540,7 @@ async function generateCoachingNarrative(s, openaiKey) {
     'You are a senior sales coach writing a detailed, long-form weekly coaching report for Josh, manager at Quality Care Group (QCG Insurance), a specialist UK care-sector insurance broker.',
     'QCG doctrine: reps qualify leads on Price/Risk/Client-Mentality, position as "we want to be your broker" (not just a cheaper quote), aim to create genuine jeopardy with the incumbent broker, match their approach to what the buyer actually cares about, and only credit follow-ups with a specific day/time.',
     `Write a THOROUGH, LONG coaching report for ${s.rep}. Length is not a constraint — be as long as the evidence supports. Every claim you make must be traceable to a specific call reference given in the data below. Do not write generic sales-coaching platitudes; every sentence should reference something this specific rep actually did or didn't do, with the call it happened on.`,
+    'When writing your own prose (analysis paragraphs, agenda items, the fix, etc.), refer to the prospect by their first name or business name if either appears in the data, otherwise just say \'the prospect\' or \'the caller\'. NEVER write a phone number into a sentence you are composing (e.g. do not write \'on the call with +44 1434 250232\') \u2014 phone numbers belong only in the call reference citation, not in narrative text a human is meant to read aloud.',
     'Do NOT centre the report on the numeric scores — they are a secondary trend indicator only. The centre of the report is specific, evidenced behaviour: what was said, on which call, and what a stronger version of that moment would have sounded like.',
     '', 'DATA:',
     `Calls this period: ${s.calls} | Score trend tier: ${s.tier} (informational only, not the headline)`,
@@ -565,9 +572,10 @@ async function generateCoachingNarrative(s, openaiKey) {
     '"decision_driver_analysis":"2-4 sentences on whether the rep correctly identifies what matters most to each buyer, with specific mismatch examples and call references if any exist",',
     '"rapport_analysis":"3-5 sentences specifically on rapport — both what is working and what is being left on the table, with call references",',
     '"missed_opportunities_summary":"3-6 sentences synthesising the pattern across the missed-opportunity list — not just repeating them, but naming the underlying habit (e.g. always moving past pain points without probing)",',
-    '"strengths":[{"quote":"exact verbatim quote","call_ref":"date + call reference","why_it_works":"1-2 sentences on why this specifically worked, tied to QCG doctrine","how_to_build_on_it":"a concrete next step to extend this strength — a specific technique or situation to apply it to next"}],',
-    '"focus_areas":[{"quote":"exact verbatim quote showing the gap, or a description of the missed moment if no clean quote exists","call_ref":"date + call reference","the_fix":"the SPECIFIC alternative line or action the rep should have taken, phrased exactly as they could say it on the next call, not a general principle","expected_impact":"what score/outcome improvement this realistically produces, stated plainly"}],',
-        'CRITICAL: a "quote" field must be actual words spoken BY THE REP OR PROSPECT on the call, nothing else. Some of the data above includes system-generated notes describing a call (e.g. text saying a commitment was soft or unmeasurable) \u2014 that is commentary written by the analysis system, NOT something anyone said out loud. Never put system commentary in a quote field. If you cannot find a genuine spoken quote for a point, use the description field instead and say so, do not fabricate or misattribute one.',
+    '"strengths":[{"quote":"exact verbatim quote if one genuinely exists, otherwise a short plain description of what happened (no quote marks around a description, only around real spoken words)","is_verbatim":true or false depending on whether quote is real spoken words or a description,"call_ref":"date + call reference","why_it_works":"1-2 sentences on why this specifically worked, tied to QCG doctrine","how_to_build_on_it":"a concrete next step to extend this strength \u2014 a specific technique or situation to apply it to next"}],',
+    '"focus_areas":[{"quote":"exact verbatim quote if one genuinely exists, otherwise a short plain description of the missed moment (no quote marks around a description, only around real spoken words)","is_verbatim":true or false depending on whether quote is real spoken words or a description,"call_ref":"date + call reference","the_fix":"the SPECIFIC alternative line or action the rep should have taken, phrased exactly as they could say it on the next call, not a general principle","expected_impact":"what score/outcome improvement this realistically produces, stated plainly"}],',
+        'CRITICAL: only set is_verbatim=true if the quote field is the actual words spoken BY THE REP OR PROSPECT on the call. Some of the data above includes system-generated notes describing a call (e.g. text saying a commitment was soft or unmeasurable) \u2014 that is commentary written by the analysis system, NOT something anyone said out loud, never present that as a verbatim quote. If there is no genuine spoken quote for a point, set is_verbatim=false and put a short plain description in the quote field instead, with no fabricated quotation marks around it.',
+        'Do NOT use the same underlying moment or quote as evidence for both a strength AND a focus area (or a missed opportunity) in the same report for the same rep. If the only available evidence for a point is weak or ambiguous, pick the ONE honest framing it actually supports and state it once \u2014 do not stretch a single fragile data point to argue two different, contradictory things just to fill out both sections.',
         'If low volume (see the decision-maker call count above): AT MOST 1 item each for "strengths" and "focus_areas", and AT MOST 2 items for "agenda" \u2014 there is not enough evidence for more, and padding it out would overstate confidence. Otherwise, give 2-3 items each for "strengths" and "focus_areas" \u2014 each from a DIFFERENT call where possible, so the manager has multiple distinct, real examples to raise in the session rather than one anecdote stretched thin. If there genuinely are not enough distinct qualifying examples in the data, give what is actually there rather than inventing more.',
     '"agenda":["6-8 items the manager can read almost verbatim to the rep in the room, NOT reflective analysis questions about what the rep could theoretically do. Each item must: (1) open by naming the specific call and what happened, e.g. On the call with the named prospect on the given date, when they raised X..., (2) state directly what to do differently, in plain actionable terms, not abstract doctrine language, (3) end with a concrete practice instruction for the next calls, e.g. On your next 3 calls, try asking... or Before you mention price on a call, make sure you have asked... Do not write reflective questions like What strategies could you use to... or How can you better establish... \u2014 those are analysis prompts for a report, not things a manager says out loud in a room with a rep. Write it the way an actual manager would talk."],',
     '"short_term_target":"one measurable, specific target next week tied to the actual gap identified above",',
@@ -1008,14 +1016,19 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
     html += `</div>`; // close zone-evidence
     html += `<div class="zone-header">1-1 Session Guide</div><div class="zone-session-guide">`;
 
-    // Strengths / Focus areas — now multiple each, with quote, call ref,
-    // and a concrete next step, not one paragraph apiece.
+    // Strengths / Focus areas — quote rendered with quote marks + italics
+    // only when is_verbatim is true; otherwise shown as plain descriptive
+    // text so a paraphrase never masquerades as something someone said.
+    const renderQuoteLine = item => item.is_verbatim
+      ? `<div class="vquote">"${esc(item.quote||'')}"</div>`
+      : `<div class="vquote" style="font-style:normal">${esc(item.quote||'')}</div>`;
+
     if ((n.strengths||[]).length) {
       html += `<div class="section-label">Strengths</div>`;
       (n.strengths||[]).forEach(st => {
         html += `<div class="verbatim" style="border-left-color:#16A34A;background:#F0FDF4">
           <div class="vref">Call: ${esc(st.call_ref||'')}</div>
-          <div class="vquote">"${esc(st.quote||'')}"</div>
+          ${renderQuoteLine(st)}
           <div class="vsuggest" style="color:#16A34A"><b>Why it works:</b> ${esc(st.why_it_works||'')}</div>
           <div class="vsuggest" style="color:#16A34A"><b>Build on it:</b> ${esc(st.how_to_build_on_it||'')}</div>
         </div>`;
@@ -1026,7 +1039,7 @@ function generateReportHTML(repSummaries, narratives, dateFrom, dateTo, period) 
       (n.focus_areas||[]).forEach(fa => {
         html += `<div class="verbatim">
           <div class="vref">Call: ${esc(fa.call_ref||'')}</div>
-          <div class="vquote">"${esc(fa.quote||'')}"</div>
+          ${renderQuoteLine(fa)}
           <div class="vsuggest"><b>The fix:</b> ${esc(fa.the_fix||'')}</div>
           <div class="vsuggest"><b>Expected impact:</b> ${esc(fa.expected_impact||'')}</div>
         </div>`;
