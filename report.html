@@ -623,14 +623,34 @@ async function generateCoachingNarrative(s, openaiKey) {
     throw new Error('GPT-4o failed: rate limited after ' + maxAttempts + ' attempts');
   }
 
-  const res = await callOpenAIWithRetry(
-    { model:'gpt-4o', messages:[{role:'user',content:prompt}], temperature:0.3, max_tokens:3000 },
-    openaiKey
-  );
-  const data=await res.json();
-  let raw=data.choices[0].message.content.trim();
-  if (raw.startsWith('```')) { raw=raw.split('```')[1]; if(raw.startsWith('json')) raw=raw.slice(4); }
-  return JSON.parse(raw.trim());
+  // Retry on JSON parse failure too, not just HTTP errors — a malformed or
+  // truncated response is often transient (or was previously a genuine
+  // truncation from too-tight a token budget, since raised below), and one
+  // bad response shouldn't kill the whole multi-rep report generation.
+  const maxParseAttempts = 3;
+  let lastParseError = null;
+  for (let parseAttempt = 1; parseAttempt <= maxParseAttempts; parseAttempt++) {
+    const res = await callOpenAIWithRetry(
+      // Raised from 3000 — the schema grew this session (tldr object,
+      // trend_narrative, strengths/focus_areas expanded from single strings
+      // to structured 4-field objects) without the budget being raised to
+      // match, which was plausibly truncating responses mid-JSON on reps
+      // with a lot of calls to cover.
+      { model:'gpt-4o', messages:[{role:'user',content:prompt}], temperature:0.3, max_tokens:4500 },
+      openaiKey
+    );
+    const data = await res.json();
+    let raw = data.choices[0].message.content.trim();
+    if (raw.startsWith('```')) { raw = raw.split('```')[1]; if (raw.startsWith('json')) raw = raw.slice(4); }
+    try {
+      return JSON.parse(raw.trim());
+    } catch (e) {
+      lastParseError = e;
+      console.warn(`JSON parse failed (attempt ${parseAttempt}/${maxParseAttempts}): ${e.message}`);
+      if (parseAttempt < maxParseAttempts) continue;
+    }
+  }
+  throw new Error('GPT-4o returned malformed JSON after ' + maxParseAttempts + ' attempts: ' + (lastParseError ? lastParseError.message : 'unknown'));
 }
 
 // Same 3.5/5.5 boundaries as the tier recalibration — this was still using
